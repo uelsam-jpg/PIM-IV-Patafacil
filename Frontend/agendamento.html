@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Novo Agendamento - PataFácil</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="portal-body">
+
+    <!-- Barra de Navegação -->
+    <nav class="navbar">
+        <div class="nav-logo">PataFácil</div>
+        <div class="nav-user">
+            <span id="nome-usuario">Carregando...</span>
+            <a href="#" id="btn-voltar" class="logout-btn" style="background: #e8f5e9; color: #388e3c;">Voltar ao Painel</a>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal do Wizard -->
+    <div class="dashboard-container">
+        <div class="wizard-container">
+            <!-- Cabeçalho do Wizard -->
+            <div class="wizard-header">
+                <div class="step active" id="step-header-1">1. Pet</div>
+                <div class="step" id="step-header-2">2. Serviço</div>
+                <div class="step" id="step-header-3">3. Horário</div>
+                <div class="step" id="step-header-4">4. Confirmação</div>
+            </div>
+
+            <!-- Passo 1: Selecionar o Pet -->
+            <div class="wizard-step active" id="step-1">
+                <h3 style="margin-bottom: 20px;">Para qual pet é o agendamento?</h3>
+                <select id="select-pet" class="input-field" required></select>
+                <div style="text-align: right; margin-top: 30px;">
+                    <button class="btn-primary" onclick="proximoPasso(2)">Avançar</button>
+                </div>
+            </div>
+
+            <!-- Passo 2: Selecionar o Serviço -->
+            <div class="wizard-step" id="step-2">
+                <h3 style="margin-bottom: 20px;">Qual tipo de atendimento?</h3>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <div id="btn-cat-petshop" onclick="selecionarCategoria('petshop')" style="flex: 1; padding: 15px; text-align: center; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; background: white; transition: 0.2s;">
+
+                        <strong>Pet Shop</strong><br><span style="font-size: 12px; color: #777;">Banho, Tosa, etc.</span>
+                    </div>
+                    <div id="btn-cat-vet" onclick="selecionarCategoria('vet')" style="flex: 1; padding: 15px; text-align: center; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; background: white; transition: 0.2s;">
+
+                        <strong>Veterinária</strong><br><span style="font-size: 12px; color: #777;">Consultas, Vacinas...</span>
+                    </div>
+                </div>
+                <div id="div-servicos" style="display: none;">
+                    <h4 style="margin-bottom: 10px;">Selecione o Serviço Específico</h4>
+                    <select id="select-servico" class="input-field" required></select>
+                </div>
+                <div id="div-sintomas" style="display: none; margin-top: 15px;">
+                    <label>Motivo da Consulta / Sintomas Iniciais (Opcional)</label>
+                    <textarea id="input-observacoes" class="input-field" rows="3" placeholder="Ex: O pet está coçando muito a orelha..."></textarea>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-top: 30px;">
+                    <button class="btn-secondary" onclick="passoAnterior(1)">Voltar</button>
+                    <button class="btn-primary" onclick="proximoPasso(3)">Avançar</button>
+                </div>
+            </div>
+
+            <!-- Passo 3: Selecionar Profissional e Horário -->
+            <div class="wizard-step" id="step-3">
+                <h3 style="margin-bottom: 20px;">Escolha o profissional e o melhor horário</h3>
+                <label>Profissional</label>
+                <select id="select-funcionario" class="input-field" required></select>
+                <label style="margin-top: 15px; display: block;">Data</label>
+                <input type="date" id="input-data" class="input-field" required>
+                <div id="horarios-disponiveis" style="margin-top: 20px;"></div>
+                <div style="display: flex; justify-content: space-between; margin-top: 30px;">
+                    <button class="btn-secondary" onclick="passoAnterior(2)">Voltar</button>
+                </div>
+            </div>
+
+            <!-- Passo 4: Confirmação -->
+            <div class="wizard-step" id="step-4">
+                <h3 style="margin-bottom: 20px;">Revise e confirme seu agendamento</h3>
+                <div id="resumo-agendamento" style="line-height: 1.8; background: #f8fafc; padding: 20px; border-radius: 12px;"></div>
+                <div style="display: flex; justify-content: space-between; margin-top: 30px;">
+                    <button class="btn-secondary" onclick="passoAnterior(3)">Voltar</button>
+                    <button class="btn-primary" id="btn-confirmar" onclick="finalizarAgendamento()">Confirmar Agendamento</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plugin VLibras (acessibilidade em Libras) -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+    <script>
+        const API_URL = "http://localhost:5288/api";
+
+        // Escapa textos vindos da API antes de inseri-los no HTML (evita injeção de código)
+        function esc(texto) {
+            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        const usuarioLogado = JSON.parse(localStorage.getItem("usuario"));
+        let agendamentoFinal = {}; // Objeto para montar os dados
+        let todosServicos = [];
+        let todosProfissionais = [];
+        let categoriaSelecionada = "";
+
+        // Segurança e Boas-vindas
+        if (!usuarioLogado) {
+            window.location.href = "index.html";
+        } else {
+            let prefixo = usuarioLogado.perfil === "Veterinario" ? "Dr(a). " : (usuarioLogado.perfil + ": ");
+            if (usuarioLogado.perfil === "Tutor") prefixo = "Olá, ";
+            document.getElementById("nome-usuario").innerText = prefixo + usuarioLogado.nome.split(" ")[0];
+
+            // Configura o botão de voltar dependendo do perfil
+            document.getElementById("btn-voltar").onclick = function() {
+                window.location.href = usuarioLogado.perfil === "Tutor" ? "portal.html" : "dashboard.html";
+            };
+        }
+
+        // ==== LÓGICA DO WIZARD (Avançar/Voltar) ====
+        let passoAtual = 1;
+        function proximoPasso(proximo) {
+            // Validações antes de avançar
+            if (passoAtual === 1 && !document.getElementById('select-pet').value) {
+                return alert('Por favor, selecione um pet.');
+            }
+            if (passoAtual === 2) {
+                if (!categoriaSelecionada) return alert('Por favor, selecione a categoria de atendimento (Pet Shop ou Veterinária).');
+                if (!document.getElementById('select-servico').value) return alert('Por favor, selecione um serviço.');
+            }
+
+            document.getElementById(`step-${passoAtual}`).classList.remove('active');
+            document.getElementById(`step-header-${passoAtual}`).classList.remove('active');
+            
+            passoAtual = proximo;
+
+            document.getElementById(`step-${passoAtual}`).classList.add('active');
+            document.getElementById(`step-header-${passoAtual}`).classList.add('active');
+
+            // Ações ao entrar em um passo
+            if (passoAtual === 3) {
+                carregarProfissionaisParaPasso3();
+                carregarHorarios();
+            }
+            if (passoAtual === 4) montarResumo();
+        }
+
+        function passoAnterior(anterior) {
+            document.getElementById(`step-${passoAtual}`).classList.remove('active');
+            document.getElementById(`step-header-${passoAtual}`).classList.remove('active');
+            passoAtual = anterior;
+            document.getElementById(`step-${passoAtual}`).classList.add('active');
+            document.getElementById(`step-header-${passoAtual}`).classList.add('active');
+        }
+
+        // ==== CARREGAMENTO DE DADOS DA API ====
+        async function carregarDadosIniciais() {
+            try {
+                const token = localStorage.getItem("token");
+                // Carregar Pets
+                const selectPet = document.getElementById('select-pet');
+                selectPet.innerHTML = '<option value="" disabled selected>Carregando...</option>';
+                const respPets = await fetch(`${API_URL}/Pets/tutor/${usuarioLogado.id}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                if (respPets.ok) {
+                    const pets = await respPets.json();
+                    selectPet.innerHTML = '<option value="" disabled selected>Selecione...</option>';
+                    if(pets.length === 0) selectPet.innerHTML = '<option value="" disabled>Cadastre um pet no Painel primeiro!</option>';
+                    pets.forEach(p => selectPet.innerHTML += `<option value="${p.id}">${esc(p.nome)}</option>`);
+                } else selectPet.innerHTML = '<option value="" disabled>Erro ao buscar pets.</option>';
+            } catch(e) { console.error(e); }
+
+            try {
+                // Carregar Serviços para a memória
+                const respServicos = await fetch(`${API_URL}/Servicos`);
+                if (respServicos.ok) {
+                    todosServicos = await respServicos.json();
+                }
+            } catch(e) { console.error(e); }
+
+            try {
+                // Carregar Funcionários para a memória
+                const respFunc = await fetch(`${API_URL}/funcionarios/profissionais`);
+                if (respFunc.ok) {
+                    todosProfissionais = await respFunc.json();
+                }
+            } catch(e) { console.error(e); }
+
+            // Evento para buscar horários quando a data ou profissional mudar
+            document.getElementById('input-data').addEventListener('change', carregarHorarios);
+            document.getElementById('select-funcionario').addEventListener('change', carregarHorarios);
+        }
+
+        function selecionarCategoria(cat) {
+            categoriaSelecionada = cat;
+            
+            // Estiliza os botões selecionados
+            document.getElementById('btn-cat-petshop').style.border = cat === 'petshop' ? '2px solid var(--primary)' : '1px solid var(--border-color)';
+            document.getElementById('btn-cat-petshop').style.background = cat === 'petshop' ? '#f0fdf4' : 'white';
+            
+            document.getElementById('btn-cat-vet').style.border = cat === 'vet' ? '2px solid var(--primary)' : '1px solid var(--border-color)';
+            document.getElementById('btn-cat-vet').style.background = cat === 'vet' ? '#f0fdf4' : 'white';
+
+            // Filtra os serviços
+            const selectServico = document.getElementById('select-servico');
+            selectServico.innerHTML = '<option value="" disabled selected>Selecione o Serviço...</option>';
+            
+            let servicosFiltrados = [];
+            if (cat === 'petshop') {
+                servicosFiltrados = todosServicos.filter(s => s.nome.toLowerCase().includes('banho') || s.nome.toLowerCase().includes('tosa'));
+                document.getElementById('div-sintomas').style.display = 'none';
+                document.getElementById('input-observacoes').value = ""; // Limpa os sintomas
+            } else {
+                servicosFiltrados = todosServicos.filter(s => !s.nome.toLowerCase().includes('banho') && !s.nome.toLowerCase().includes('tosa'));
+                document.getElementById('div-sintomas').style.display = 'block';
+            }
+
+            if(servicosFiltrados.length === 0) {
+                selectServico.innerHTML = '<option value="" disabled>Nenhum serviço encontrado para esta categoria.</option>';
+            } else {
+                servicosFiltrados.forEach(s => selectServico.innerHTML += `<option value="${s.id}">${s.nome} (R$ ${s.preco.toFixed(2)})</option>`);
+            }
+            
+            document.getElementById('div-servicos').style.display = 'block';
+        }
+
+        function carregarProfissionaisParaPasso3() {
+            const selectFunc = document.getElementById('select-funcionario');
+            const profAnterior = selectFunc.value; // Guarda se o usuário já tinha escolhido um
+
+            selectFunc.innerHTML = '<option value="" disabled selected>Selecione...</option>';
+            
+            let profsFiltrados = [];
+            if (categoriaSelecionada === 'petshop') {
+                // Traz apenas os profissionais de Banho e Tosa
+                profsFiltrados = todosProfissionais.filter(f => f.cargo === 3 || String(f.cargo).toLowerCase().includes("tosa"));
+            } else if (categoriaSelecionada === 'vet') {
+                // Traz apenas Veterinários
+                profsFiltrados = todosProfissionais.filter(f => f.cargo === 0 || String(f.cargo).toLowerCase().includes("vet"));
+            }
+
+            if(profsFiltrados.length === 0) {
+                selectFunc.innerHTML = '<option value="" disabled>Nenhum profissional disponível para esta categoria.</option>';
+            } else {
+                profsFiltrados.forEach(f => {
+                    let nomeCargo = (f.cargo === 0 || String(f.cargo).toLowerCase().includes("vet")) ? "Veterinário(a)" : "Banho e Tosa";
+                    selectFunc.innerHTML += `<option value="${f.id}">${esc(f.nome)} - ${nomeCargo}</option>`;
+                });
+            }
+
+            if (profAnterior) selectFunc.value = profAnterior;
+        }
+
+        async function carregarHorarios() {
+            const idFuncionario = document.getElementById('select-funcionario').value;
+            const data = document.getElementById('input-data').value;
+            const idServico = document.getElementById('select-servico').value;
+            const divHorarios = document.getElementById('horarios-disponiveis');
+
+            if (!idFuncionario || !data || !idServico) return;
+
+            divHorarios.innerHTML = '<p>Buscando horários...</p>';
+            const resp = await fetch(`${API_URL}/agendamento/horarios-disponiveis?data=${data}&idServico=${idServico}&idFuncionario=${idFuncionario}`);
+            
+            if (resp.ok) {
+                const horarios = await resp.json();
+                divHorarios.innerHTML = '<h4>Selecione um horário:</h4>';
+                if (horarios.length === 0) {
+                    divHorarios.innerHTML += '<p style="color: #e74c3c;">Nenhum horário disponível para esta data.</p>';
+                } else {
+                    horarios.forEach(h => {
+                        const horarioFormatado = new Date(h).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        divHorarios.innerHTML += `<button class="btn-secondary" style="margin: 5px;" onclick="selecionarHorario('${h}')">${horarioFormatado}</button>`;
+                    });
+                }
+            } else {
+                divHorarios.innerHTML = '<p style="color: #e74c3c;">Erro ao buscar horários.</p>';
+            }
+        }
+
+        function selecionarHorario(dataHora) {
+            agendamentoFinal.dataHoraInicio = dataHora;
+            proximoPasso(4);
+        }
+
+        function montarResumo() {
+            const petNome = document.getElementById('select-pet').options[document.getElementById('select-pet').selectedIndex].text;
+            const servicoNome = document.getElementById('select-servico').options[document.getElementById('select-servico').selectedIndex].text;
+            const funcNome = document.getElementById('select-funcionario').options[document.getElementById('select-funcionario').selectedIndex].text;
+            const dataHoraFormatada = new Date(agendamentoFinal.dataHoraInicio).toLocaleString('pt-BR', { dateStyle: 'long', timeStyle: 'short' });
+            const obs = document.getElementById('input-observacoes')?.value || "";
+
+            document.getElementById('resumo-agendamento').innerHTML = `
+                <strong>Pet:</strong> ${petNome}<br>
+                <strong>Categoria:</strong> ${categoriaSelecionada === 'vet' ? 'Veterinária' : 'Pet Shop'}<br>
+                <strong>Serviço:</strong> ${servicoNome}<br>
+                <strong>Profissional:</strong> ${funcNome}<br>
+                <strong>Data e Hora:</strong> ${dataHoraFormatada}
+                ${obs ? `<br><br><strong>Motivo/Sintomas:</strong> <em>${obs}</em>` : ''}
+            `;
+            
+            agendamentoFinal.observacoes = obs; // Sempre envia para não dar erro de campo ausente no C#
+        }
+
+        async function finalizarAgendamento() {
+            document.getElementById('btn-confirmar').disabled = true;
+            document.getElementById('btn-confirmar').innerText = "Salvando...";
+
+            agendamentoFinal.idPet = parseInt(document.getElementById('select-pet').value);
+            agendamentoFinal.idServico = parseInt(document.getElementById('select-servico').value);
+            agendamentoFinal.idFuncionario = parseInt(document.getElementById('select-funcionario').value);
+            agendamentoFinal.status = 0; // PENDENTE
+
+            // Pega o token de segurança salvo no login
+            const token = localStorage.getItem("token");
+
+            try {
+                const response = await fetch(`${API_URL}/agendamento`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}` 
+                    },
+                    body: JSON.stringify(agendamentoFinal)
+                });
+
+                if (response.ok) {
+                    alert('Agendamento realizado com sucesso!');
+                    window.location.href = usuarioLogado.perfil === "Tutor" ? 'portal.html' : 'dashboard.html';
+                } else {
+                    const erro = await response.json();
+                    let msgErro = erro.Erro || erro.erro || erro.mensagem || erro.title || "Verifique os dados e tente novamente.";
+                    if (erro.errors) {
+                        msgErro += "\nDetalhes: " + Object.values(erro.errors).flat().join('\n');
+                    }
+                    alert('Erro ao agendar:\n' + msgErro);
+                    document.getElementById('btn-confirmar').disabled = false;
+                    document.getElementById('btn-confirmar').innerText = "Confirmar Agendamento";
+                }
+            } catch (e) {
+                alert('Falha de comunicação com a API.');
+                document.getElementById('btn-confirmar').disabled = false;
+                document.getElementById('btn-confirmar').innerText = "Confirmar Agendamento";
+            }
+        }
+
+        // Inicia o carregamento dos dados
+        carregarDadosIniciais();
+    </script>
+    <script src="ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,96 @@
+# ============================================================
+# PataFácil — Pipeline CI/CD (GitHub Actions)
+#
+# CI:   compila o backend .NET, roda os testes unitários e valida o microsserviço Python
+# CD:   constrói e publica as imagens Docker no GHCR
+# ============================================================
+name: CI/CD
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ---------------- CI: Backend .NET ----------------
+  backend-build:
+    name: Backend (.NET build + testes)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore PataFacil/PataFacil.csproj
+
+      - name: Build (Release)
+        run: dotnet build PataFacil/PataFacil.csproj --no-restore -c Release
+
+      # Testes unitários das regras de negócio (xUnit + Moq): o build só segue se todos passarem
+      - name: Test
+        run: dotnet test Tests/PataFacil.Tests.csproj -c Release
+
+  # ---------------- CI: Microsserviço Python ----------------
+  ml-check:
+    name: Machine Learning (Python)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install deps
+        run: pip install -r MachineLearning/requirements.txt
+
+      - name: Syntax check
+        run: python -m py_compile MachineLearning/ml_api.py
+
+  # ---------------- CD: Docker images ----------------
+  docker-build:
+    name: Docker (build imagens)
+    runs-on: ubuntu-latest
+    needs: [backend-build, ml-check]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Login no GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build e Push — API C#
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: DevOps/Dockerfile.api
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/patafacil-api:latest
+            ghcr.io/${{ github.repository_owner }}/patafacil-api:${{ github.sha }}
+
+      - name: Build e Push — API ML
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: DevOps/Dockerfile.ml
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/patafacil-ml:latest
+            ghcr.io/${{ github.repository_owner }}/patafacil-ml:${{ github.sha }}

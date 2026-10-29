@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caixa de E-mail - PataFácil</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="portal-body has-sidebar">
+    <!-- Menu Lateral: os itens aparecem conforme o perfil -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">PataFácil</div>
+
+        <div class="sidebar-title">Menu Principal</div>
+        <ul class="sidebar-menu">
+            <li class="menu-agenda" style="display:none;"><a href="atendente.html">Agenda do Balcão</a></li>
+            <li class="menu-agenda" style="display:none;"><a href="ordens.html">Ordens de Serviço</a></li>
+            <li class="menu-equipe" style="display:none;"><a href="dashboard.html">Visão Geral</a></li>
+            <li class="menu-tutor" style="display:none;"><a href="portal.html">Meus Pets</a></li>
+            <li class="menu-tutor" style="display:none;"><a href="agendamento.html">Novo Agendamento</a></li>
+            <li><a href="emails.html" class="active">Caixa de E-mail <span class="badge-menu" id="badge-emails" hidden></span></a></li>
+            <li class="menu-vet" style="display:none;"><a href="veterinario.html">Painel Veterinário</a></li>
+            <li class="menu-gerente" style="display:none;"><a href="gerente.html">Gestão e Relatórios</a></li>
+            <li class="menu-estoque" style="display:none;"><a href="estoque.html">Estoque e Vendas</a></li>
+        </ul>
+
+        <div class="sidebar-title" style="margin-top: 30px;">Sistema</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" onclick="sair()" style="color: #e74c3c;">Sair</a></li>
+        </ul>
+    </aside>
+
+    <nav class="navbar">
+        <div class="nav-logo">Caixa de E-mail</div>
+        <div class="nav-user">
+            <span id="nome-usuario">Carregando...</span>
+            <a href="#" class="logout-btn" onclick="sair()">Sair</a>
+        </div>
+    </nav>
+
+    <main class="dashboard-container mail-wrap">
+        <div class="mail" id="mail">
+            <section class="mail-lista" aria-label="Lista de e-mails">
+                <div class="mail-topo">
+                    <h2>Caixa de entrada</h2>
+                    <button type="button" class="btn-icone" style="font-size:17px;" onclick="carregar()" title="Atualizar" aria-label="Atualizar">⟳</button>
+                </div>
+                <input type="search" id="mail-busca" class="mail-busca" placeholder="Buscar por assunto ou texto..." aria-label="Buscar e-mails" oninput="desenharLista()">
+                <div class="mail-filtros">
+                    <button type="button" class="ativo" data-filtro="todos" onclick="filtrar('todos')">Todos</button>
+                    <button type="button" data-filtro="nao-lidos" onclick="filtrar('nao-lidos')">Não lidos <span id="qtd-nao-lidos"></span></button>
+                </div>
+                <ul class="mail-itens" id="mail-itens"><li class="mail-vazio">Carregando...</li></ul>
+            </section>
+
+            <section class="mail-leitura" id="mail-leitura" aria-live="polite">
+                <div class="mail-vazio"><strong>Selecione um e-mail para ler</strong>Confirmações de agendamento, avisos e cancelamentos chegam aqui.</div>
+            </section>
+        </div>
+    </main>
+
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+
+    <!-- Plugin VLibras (acessibilidade em Libras) -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+    <script>
+        const API_URL = "http://localhost:5288/api";
+
+        // Escapa textos vindos da API antes de inseri-los no HTML (evita injeção de código)
+        function esc(texto) {
+            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        let usuarioLogado = null;
+        try { usuarioLogado = JSON.parse(localStorage.getItem("usuario")); } catch (e) {}
+
+        let emails = [];
+        let filtro = "todos";
+        let abertoId = null;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (!usuarioLogado) {
+                window.location.href = "index.html";
+                return;
+            }
+            montarMenu(usuarioLogado.perfil);
+            document.getElementById("nome-usuario").innerText = (usuarioLogado.nome || "Usuário").split(" ")[0];
+            carregar();
+        });
+
+        function montarMenu(perfil) {
+            const mostrar = classe => document.querySelectorAll(classe).forEach(el => el.style.display = "block");
+            if (perfil === "Tutor") mostrar(".menu-tutor");
+            if (["Atendente", "Gerente", "Tosador"].includes(perfil)) mostrar(".menu-agenda");
+            if (["Atendente", "Gerente", "Veterinario"].includes(perfil)) mostrar(".menu-equipe");
+            if (["Veterinario", "Gerente"].includes(perfil)) mostrar(".menu-vet");
+            if (perfil === "Gerente") mostrar(".menu-gerente");
+            if (["Atendente", "Gerente"].includes(perfil)) mostrar(".menu-estoque");
+        }
+
+        function sair() {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+
+        async function api(caminho, opcoes = {}) {
+            const res = await fetch(`${API_URL}${caminho}`, {
+                ...opcoes,
+                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+            });
+            if (res.status === 401) throw new Error("Sua sessão expirou. Faça login novamente.");
+            if (!res.ok) throw new Error(`Erro ${res.status} ao acessar a caixa de e-mail.`);
+            const texto = await res.text();
+            return texto ? JSON.parse(texto) : null;
+        }
+
+        function aviso(texto, tipo = "") {
+            const t = document.createElement("div");
+            t.className = "toast " + tipo;
+            t.textContent = texto;
+            document.getElementById("toasts").appendChild(t);
+            setTimeout(() => t.remove(), 3500);
+        }
+
+        async function carregar() {
+            try {
+                emails = await api("/emails");
+                desenharLista();
+                if (abertoId && !emails.some(e => e.id === abertoId)) fecharLeitura();
+            } catch (e) {
+                document.getElementById("mail-itens").innerHTML = `<li class="mail-vazio">${esc(e.message === "Failed to fetch" ? "Não foi possível conectar à API." : e.message)}</li>`;
+            }
+        }
+
+        function filtrar(novo) {
+            filtro = novo;
+            document.querySelectorAll(".mail-filtros button").forEach(b => b.classList.toggle("ativo", b.dataset.filtro === novo));
+            desenharLista();
+        }
+
+        function dataCurta(valor) {
+            const d = new Date(valor);
+            const hoje = new Date();
+            const ontem = new Date(); ontem.setDate(hoje.getDate() - 1);
+            if (d.toDateString() === hoje.toDateString()) return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+            if (d.toDateString() === ontem.toDateString()) return "Ontem";
+            return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+        }
+
+        function desenharLista() {
+            const naoLidos = emails.filter(e => !e.lida).length;
+            document.getElementById("qtd-nao-lidos").textContent = naoLidos ? `(${naoLidos})` : "";
+            const badge = document.getElementById("badge-emails");
+            badge.textContent = naoLidos;
+            badge.hidden = naoLidos === 0;
+
+            const termo = document.getElementById("mail-busca").value.trim().toLowerCase();
+            const visiveis = emails.filter(e =>
+                (filtro === "todos" || !e.lida) &&
+                (!termo || e.assunto.toLowerCase().includes(termo) || e.corpo.toLowerCase().includes(termo)));
+
+            const lista = document.getElementById("mail-itens");
+            if (visiveis.length === 0) {
+                const msg = emails.length === 0 ? "Sua caixa de entrada está vazia." : (termo ? "Nenhum e-mail encontrado." : "Nenhum e-mail não lido.");
+                lista.innerHTML = `<li class="mail-vazio">${msg}</li>`;
+                return;
+            }
+            lista.innerHTML = visiveis.map(e => `
+                <li class="mail-item ${e.lida ? "" : "nao-lido"} ${e.id === abertoId ? "selecionado" : ""}" role="option" tabindex="0"
+                    onclick="abrir(${e.id})" onkeydown="if(event.key==='Enter') abrir(${e.id})">
+                    <div class="mail-avatar">P</div>
+                    <div style="min-width:0;">
+                        <div class="linha"><span class="remetente">PataFácil</span><span class="data">${dataCurta(e.dataEnvio)}</span></div>
+                        <div class="assunto">${esc(e.assunto)}</div>
+                        <div class="previa">${esc(e.corpo.replace(/\s+/g, " "))}</div>
+                    </div>
+                </li>`).join("");
+        }
+
+        async function abrir(id) {
+            const e = emails.find(x => x.id === id);
+            if (!e) return;
+            abertoId = id;
+            document.getElementById("mail").classList.add("lendo");
+            document.getElementById("mail-leitura").innerHTML = `
+                <div class="mail-cabecalho">
+                    <button type="button" class="btn-texto mail-voltar" onclick="fecharLeitura()">‹ Voltar</button>
+                    <h1>${esc(e.assunto)}</h1>
+                    <div class="mail-meta">
+                        <div class="mail-avatar">P</div>
+                        <div class="quem"><strong>PataFácil</strong><span>nao-responda@patafacil.com · para ${esc(e.destinatario)}</span></div>
+                        <div class="quando">${new Date(e.dataEnvio).toLocaleString("pt-BR", { dateStyle: "long", timeStyle: "short" })}</div>
+                    </div>
+                    <div class="mail-acoes">
+                        <button type="button" class="btn-secondary" onclick="marcarNaoLido(${e.id})">Marcar como não lido</button>
+                        <button type="button" class="btn-texto perigo" onclick="excluir(${e.id})">Excluir</button>
+                    </div>
+                </div>
+                <div class="mail-papel">
+                    <div class="faixa">PataFácil</div>
+                    <div class="conteudo">${esc(e.corpo)}</div>
+                    <div class="rodape">Este é um e-mail automático do sistema PataFácil. Dúvidas? Fale com o balcão da clínica.</div>
+                </div>`;
+
+            if (!e.lida) {
+                e.lida = true;
+                try { await api(`/emails/${id}/lida`, { method: "PATCH" }); } catch (err) { e.lida = false; }
+            }
+            desenharLista();
+        }
+
+        function fecharLeitura() {
+            abertoId = null;
+            document.getElementById("mail").classList.remove("lendo");
+            document.getElementById("mail-leitura").innerHTML = `<div class="mail-vazio"><strong>Selecione um e-mail para ler</strong></div>`;
+            desenharLista();
+        }
+
+        async function marcarNaoLido(id) {
+            try {
+                await api(`/emails/${id}/lida?lida=false`, { method: "PATCH" });
+                emails.find(x => x.id === id).lida = false;
+                fecharLeitura();
+            } catch (e) { aviso(e.message, "erro"); }
+        }
+
+        async function excluir(id) {
+            try {
+                await api(`/emails/${id}`, { method: "DELETE" });
+                emails = emails.filter(x => x.id !== id);
+                fecharLeitura();
+                aviso("E-mail excluído.", "ok");
+            } catch (e) { aviso(e.message, "erro"); }
+        }
+    </script>
+    <script src="ui.js"></script>
+</body>
+</html>

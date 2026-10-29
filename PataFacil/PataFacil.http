@@ -1,0 +1,6 @@
+@PataFacil_HostAddress = http://localhost:5288
+
+GET {{PataFacil_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,25 @@
+# ============================================================
+# Dockerfile — API C# (PataFácil) — build de múltiplos estágios
+# Contexto de build: raiz do projeto (contém a pasta PataFacil/)
+#   docker build -f DevOps/Dockerfile.api -t patafacil-api .
+# ============================================================
+
+# Estágio 1: build/publicação
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Restaura primeiro (aproveita o cache de camadas do Docker)
+COPY PataFacil/PataFacil.csproj ./
+RUN dotnet restore PataFacil.csproj
+
+# Copia o restante do código e publica em Release
+COPY PataFacil/ ./
+RUN dotnet publish PataFacil.csproj -c Release -o /app/publish
+
+# Estágio 2: runtime (imagem enxuta)
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+COPY --from=build /app/publish .
+
+EXPOSE 80
+ENTRYPOINT ["dotnet", "PataFacil.dll"]

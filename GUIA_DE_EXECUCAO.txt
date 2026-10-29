@@ -1,0 +1,164 @@
+=========================================================
+      GUIA DE EXECUÇÃO E DOCUMENTAÇÃO - PATAFÁCIL (PIM IV)
+=========================================================
+
+1. COMO RODAR O PROJETO
+---------------------------------------------------------
+Para o sistema funcionar por completo são necessários o Banco de Dados, a API de
+Machine Learning e a API em C#. Os comandos abaixo partem da pasta raiz do projeto.
+
+PASSO 1: Banco de Dados MySQL
+- Certifique-se de que o MySQL 8 está rodando na sua máquina na porta padrão (3306).
+- A string de conexão fica em PataFacil/appsettings.json:
+  "Server=127.0.0.1;Database=patafacil;Uid=root;Pwd=Admin@123.;"
+  (troque a senha se a do seu MySQL for outra)
+- Não é preciso criar o banco à mão: ao iniciar, a API aplica o script
+  PataFacil/DAL/ScriptBancoDeDados.sql (tabelas, triggers, procedures, views e
+  índices) e cadastra os dados iniciais. O script pode ser reexecutado sem erro.
+
+PASSO 2: API de Machine Learning (Python)
+  cd MachineLearning
+  pip install -r requirements.txt
+  uvicorn ml_api:app --port 8000
+- A IA fica disponível em http://localhost:8000 (teste em http://localhost:8000/health).
+- A IA é opcional: se estiver desligada, o restante do sistema continua funcionando.
+
+PASSO 3: Backend da Aplicação (C# ASP.NET Core)
+- Em um NOVO terminal (mantendo o do Python aberto):
+  cd PataFacil
+  dotnet run
+- A API sobe em http://localhost:5288 (Swagger em http://localhost:5288/swagger).
+- Verificação de saúde: http://localhost:5288/health
+
+PASSO 4: Frontend (Interface Web)
+- Abra o arquivo Frontend/index.html no navegador, ou use a extensão "Live Server"
+  do VS Code.
+
+PASSO 5: Aplicativo Mobile (opcional)
+  cd Mobile
+  npm install
+  npx expo start
+- Ajuste o endereço da API em Mobile/src/config/api.ts (veja Mobile/README.md).
+
+ALTERNATIVA: subir tudo com Docker
+  cd DevOps
+  docker compose up --build
+- Frontend em http://localhost:8080 e API em http://localhost:5288.
+
+
+2. USUÁRIOS DE DEMONSTRAÇÃO
+---------------------------------------------------------
+Criados automaticamente na primeira execução (senha gravada em hash BCrypt):
+
+  Perfil        E-mail                      Senha
+  Gerente       gerente@patafacil.com       123456
+  Atendente     atendente@patafacil.com     123456   (Ana — entra direto na Agenda do Balcão)
+  Veterinário   vet@patafacil.com           123456
+  Banho e Tosa  carla.tosa@patafacil.com    123456
+  Banho e Tosa  bruno.tosa@patafacil.com    123456
+  Banho e Tosa  julia.tosa@patafacil.com    123456
+  Tutor (demo)  cliente@patafacil.com       123456   (Maria Souza, pets Thor e Mel)
+
+O Tutor (cliente) se cadastra pela própria tela inicial (web ou mobile), informando o
+telefone com DDD. Na primeira execução também são criados agendamentos de demonstração
+(semana passada, esta semana e a próxima) para a agenda já ter conteúdo.
+
+FLUXO DO BALCÃO (atendente.html)
+- Navegação por Dia ou Semana, com setas, botão "Hoje" e calendário.
+- Abas: Agendados -> Em processo -> Finalizados (e Cancelados).
+- Cada agendamento mostra o pet, o cliente, o telefone/WhatsApp, o serviço, o
+  profissional e um campo de observações da equipe.
+- "Cliente chegou" move o atendimento para "Em processo"; "Finalizar e receber" registra
+  o valor pago e a forma de pagamento (Pix, dinheiro com troco, débito ou crédito).
+- Cada cartão tem o link "Ordem de serviço", que abre a OS daquele atendimento.
+- Caixa de E-mail (emails.html): mostra os e-mails que o sistema realmente enviou ao
+  usuário logado (confirmações, avisos de novo agendamento, cancelamentos).
+
+ORDENS DE SERVIÇO (ordens.html)
+- Gerada automaticamente para cada agendamento, com o número do atendimento.
+- Lista por dia, semana ou mês, com busca e filtro por situação.
+- Formatos: A4 (imprimir ou "Baixar PDF" para enviar ao cliente) e cupom para impressora
+  térmica de 80 mm ou 58 mm (na janela de impressão, escolha a impressora térmica e
+  deixe a escala em 100%). O botão WhatsApp abre a conversa com o resumo da OS.
+
+ESTOQUE E VENDAS (estoque.html)
+- Registrar Venda: carrinho, forma de pagamento e troco.
+- Entrada de Mercadoria: nota fiscal, validade do lote, custo, margem e preço de venda.
+  Escolha "Produto já cadastrado" ou "+ Cadastrar produto novo". O fornecedor é
+  escolhido na lista (o último fornecedor do produto já vem preenchido) ou cadastrado na
+  hora pelo botão "+ Novo fornecedor" (nome, CNPJ, telefone e e-mail).
+- Planilha de Estoque: saldos, margens, validades e situação de cada produto.
+- Catálogo de demonstração criado na primeira execução: 25 serviços, 51 produtos com
+  lotes e validades, e os fornecedores desses lotes.
+Observação: em bancos criados por versões anteriores, a senha da equipe que estava
+em texto puro (ex.: 123) é convertida para BCrypt na inicialização e continua valendo.
+
+
+3. TESTES AUTOMATIZADOS
+---------------------------------------------------------
+  cd Tests
+  dotnet test
+- 28 testes (xUnit + Moq) cobrem as regras de agendamento (RN01, RN02, RN03, RN04,
+  RN10), a chegada e o pagamento no balcão, a posse dos dados pelo tutor, as vendas com
+  estoque (RN15), a entrada de mercadoria com o preço pela margem e o BCrypt.
+- Os testes não precisam de banco de dados: os repositórios são simulados.
+
+
+4. ESTRUTURA DE PASTAS E DOCUMENTAÇÃO
+---------------------------------------------------------
+O projeto PataFácil é construído com uma arquitetura dividida em camadas (Apresentação, API, Negócios, Dados e Inteligência Artificial).
+
+📂 Frontend/ (Camada de Apresentação)
+- Contém todos os arquivos HTML, CSS e JavaScript puros (sem frameworks pesados, para máxima velocidade).
+- `index.html`: Tela de Login/Cadastro.
+- `portal.html`: Painel do Tutor (cliente), onde ele visualiza seus pets, agenda serviços e acompanha o status (cancelar/agendar).
+- `dashboard.html`: Visão geral da equipe, com indicadores (KPIs) e a demanda prevista pela IA.
+- `agendamento.html`: Tela em formato "Wizard" (passo a passo amigável) para marcar serviços (Banho, Consulta, etc).
+- `veterinario.html`: Painel clínico para médicos veterinários registrarem prontuários.
+- `atendente.html`: Balcão de atendimento para gerenciamento rápido da agenda do dia e check-in.
+- `ordens.html`: Ordens de serviço geradas automaticamente, em A4/PDF ou cupom térmico.
+- `estoque.html`: Vendas ao cliente (carrinho), entrada de mercadoria com fornecedores, planilha e alertas de reposição e validade.
+- `emails.html`: Caixa de e-mail do usuário logado.
+- `gerente.html`: Relatórios financeiros gerados em tempo real e cadastro da equipe.
+- `app.js`: Script principal com a lógica inicial e integração com a API.
+- `style.css`: Estilização visual (UI/UX) focada em acessibilidade.
+- Todas as páginas trazem o plugin VLibras (tradução para Libras).
+
+📂 PataFacil/ (Camada Backend e Regras de Negócio em C#)
+- `Controllers/`: Recebe as requisições HTTP enviadas pelo Frontend e pelo Mobile (ex: `AgendamentoController.cs`). São as portas de entrada da API, protegidas por perfil de acesso.
+- `BLL/ (Business Logic Layer)`: Contém as regras do sistema (ex: `AgendamentoService.cs`). É aqui que o sistema impede agendamentos em horários chocados, bloqueia marcações aos domingos e se comunica com o Python (IA).
+- `DAL/ (Data Access Layer)`: Gerencia o acesso ao banco de dados MySQL usando o Padrão Repository e Entity Framework. Contém também o `ScriptBancoDeDados.sql` e o `InicializadorBanco.cs`, que o aplica.
+- `Models/`: As classes que estruturam as tabelas do banco (Tutor, Pet, Funcionario, etc), aplicando a Orientação a Objetos.
+- `Program.cs`: Onde o servidor inicia, configura as injeções de dependência, o JWT (Token de Segurança) e os dados iniciais.
+
+📂 Mobile/ (Aplicativo do Tutor — React Native + Expo)
+- Login, cadastro, pets, agendamento em passos, consultas e perfil, consumindo as mesmas APIs do sistema web.
+
+📂 MachineLearning/ (Microsserviço de IA)
+- `ml_api.py`: Código em Python utilizando a biblioteca FastAPI que expõe 3 modelos para o C# consumir:
+  1. Risco de Cancelamento: (Random Forest) Prevê se um agendamento tem chance alta de falta (No-show).
+  2. Previsão de Demanda: (Regressão Linear) Estima o movimento do dia.
+  3. Segmentação de Clientes: (K-Means) Agrupa clientes em perfis (Ocasionais, Em Risco, Fiéis, VIP).
+- Os modelos são treinados com dados sintéticos na primeira execução e salvos em `modelos_patafacil.joblib`.
+
+📂 Tests/ (Garantia de Qualidade e Manutenibilidade)
+- `AgendamentoServiceTests.cs`, `VendaServiceTests.cs`, `EstoqueServiceTests.cs` e `AuthTests.cs`: rotinas automatizadas usando xUnit e Moq.
+
+📂 DevOps/ e .github/workflows/
+- Dockerfiles, docker-compose e o pipeline de CI/CD (build, testes e publicação das imagens).
+
+📂 Documentacao/
+- Relatório final do PIM IV (Word e PDF), textos-base de cada etapa e os geradores:
+  python Documentacao/gerar_relatorio.py  -> PIM_IV_PataFacil_Relatorio_Final.docx e .pdf (precisa do Word)
+  python Documentacao/gerar_roteiro.py    -> Roteiro_Apresentacao_PataFacil.pdf (material de estudo da banca)
+
+
+5. REGRAS DE NEGÓCIO IMPLEMENTADAS (RESUMO)
+---------------------------------------------------------
+- RN01: O sistema NUNCA permite agendar dois serviços com o mesmo profissional no mesmo intervalo de tempo.
+- RN02: O tutor só pode cancelar online com antecedência mínima de 2h. A equipe pode cancelar a qualquer momento.
+- RN03: O horário de agendamentos é limitado das 08h às 19h, fechado aos domingos.
+- RN04: O fluxo de um agendamento é travado (Pendente -> Confirmado -> Concluído). O sistema não deixa pular nem inverter etapas.
+- RN10: O tempo do agendamento não é escolhido pelo usuário. O sistema soma automaticamente os minutos previstos do serviço escolhido.
+- RN15: Toda venda diminui o estoque (trigger do banco). Ao atingir o Ponto de Reposição, o alerta aparece para o Gerente e o Atendente.
+- Autenticação e Perfis (JWT): Todo o acesso é restrito por tokens. O Tutor só enxerga os próprios pets, agendamentos e históricos, e os endpoints gerenciais recusam o seu acesso (Erro 403).

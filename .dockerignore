@@ -1,0 +1,26 @@
+# Arquivos e pastas que não devem entrar no contexto de build do Docker
+
+# .NET
+**/bin
+**/obj
+
+# Node / Mobile
+**/node_modules
+**/.expo
+Mobile/.git
+
+# Python
+**/__pycache__
+**/.venv
+**/*.pyc
+
+# Git e IDE
+.git
+.vscode
+.idea
+
+# Artefatos de IA (não versionar o modelo binário)
+**/*.joblib
+
+# Documentação (não é necessária na imagem)
+Documentacao

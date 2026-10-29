@@ -1,0 +1,81 @@
+# ============================================================
+# PataFácil — Orquestração completa (MySQL + IA + API + Frontend)
+# Uso:  cd DevOps && docker compose up --build
+# Subir tudo:  db (3306), ml-api (8000), api (5288), frontend (8080)
+#
+# Senha do banco e chave JWT vêm de variáveis de ambiente (arquivo DevOps/.env ou segredos
+# do provedor de nuvem). Os valores após ":-" são apenas o padrão do ambiente de desenvolvimento.
+# ============================================================
+name: patafacil
+
+services:
+  # Banco de Dados MySQL
+  db:
+    image: mysql:8.0
+    container_name: patafacil-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Admin@123.}
+      MYSQL_DATABASE: patafacil
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  # Microsserviço de Inteligência Artificial (Python/FastAPI)
+  ml-api:
+    build:
+      context: ..
+      dockerfile: DevOps/Dockerfile.ml
+    container_name: patafacil-ml
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # API Backend (C# ASP.NET Core)
+  api:
+    build:
+      context: ..
+      dockerfile: DevOps/Dockerfile.api
+    container_name: patafacil-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      ml-api:
+        condition: service_started
+    environment:
+      # Dentro da rede Docker, o banco é acessado pelo nome do serviço "db"
+      ConnectionStrings__ConexaoMySQL: "Server=db;Database=patafacil;Uid=root;Pwd=${DB_PASSWORD:-Admin@123.};"
+      # A IA é acessada pelo nome do serviço "ml-api"
+      MlApiUrl: "http://ml-api:8000"
+      Jwt__Key: "${JWT_KEY:-MinhaChaveSuperSecretaPataFacil2025!}"
+      ASPNETCORE_URLS: "http://+:80"
+    ports:
+      - "5288:80"
+
+  # Frontend estático servido pelo nginx
+  frontend:
+    image: nginx:alpine
+    container_name: patafacil-frontend
+    restart: unless-stopped
+    volumes:
+      - ../Frontend:/usr/share/nginx/html:ro
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  db_data:

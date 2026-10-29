@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clínica - PataFácil</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="portal-body has-sidebar">
+    <!-- Menu Lateral (Sidebar Fixo) -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">PataFácil</div>
+        
+        <div class="sidebar-title">Menu Principal</div>
+        <ul class="sidebar-menu">
+            <li><a href="dashboard.html">Visão Geral</a></li>
+            <li class="menu-tutor" style="display:none;"><a href="agendamento.html">Novo Agendamento</a></li>
+            <li class="menu-tutor" style="display:none;"><a href="portal.html">Meus Pets</a></li>
+            <li><a href="emails.html">Caixa de E-mail</a></li>
+            <li class="menu-staff" style="display:none;"><a href="atendente.html">Agenda do Balcão</a></li>
+            <li><a href="ordens.html">Ordens de Serviço</a></li>
+            <li class="menu-vet" style="display:none;"><a href="veterinario.html" class="active">Painel Veterinário</a></li>
+            <li class="menu-gerente" style="display:none;"><a href="gerente.html">Gestão e Relatórios</a></li>
+            <li class="menu-staff" style="display:none;"><a href="estoque.html">Estoque e Vendas</a></li>
+        </ul>
+
+        <div class="sidebar-title" style="margin-top: 30px;">Sistema</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" onclick="sair()" style="color: #e74c3c;">Sair</a></li>
+        </ul>
+    </aside>
+
+    <nav class="navbar">
+        <div class="nav-logo">Consultório Veterinário</div>
+        <div class="nav-user">
+            <span id="nome-usuario">Carregando...</span>
+            <a href="#" class="logout-btn" onclick="sair()">Sair</a>
+        </div>
+    </nav>
+
+    <div class="dashboard-container" style="display: flex; gap: 20px; flex-wrap: wrap;">
+        
+        <!-- Painel Esquerdo: Agenda do Veterinário -->
+        <div class="wizard-container" style="flex: 1; min-width: 300px; max-height: 600px; overflow-y: auto;">
+            <div class="wizard-header" style="margin-bottom: 15px;">
+                <div class="step active" style="font-size: 16px;">Meus Pacientes (Hoje)</div>
+            </div>
+            <div id="lista-pacientes">
+                <p style="color: #777; text-align: center;">Buscando agenda...</p>
+            </div>
+        </div>
+
+        <!-- Painel Direito: Histórico e Prontuário -->
+        <div class="wizard-container" style="flex: 2; min-width: 400px;">
+            <div class="wizard-header">
+                <div class="step active" style="font-size: 16px;">Prontuário Eletrônico</div>
+            </div>
+
+            <!-- Mini-painel de Histórico Anterior -->
+            <div id="painel-historico-anterior" style="background: #eef2f6; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none;">
+                <h4 style="color: var(--secondary); margin-bottom: 10px;">Histórico Recente do Paciente</h4>
+                <div id="historico-pregresso-conteudo" style="font-size: 14px; color: #555;">Buscando...</div>
+            </div>
+
+            <form id="form-historico" onsubmit="salvarHistorico(event)">
+                <input type="hidden" id="agendamento-id-ativo"> <!-- Para marcar como concluído na agenda -->
+                
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label>ID do Pet (Paciente)</label>
+                        <input type="number" id="hist-pet" class="input-field" required onchange="buscarHistoricoPregresso(this.value)">
+                    </div>
+                    <div style="flex: 2;">
+                        <label>Tipo de Atendimento</label>
+                        <select id="hist-tipo" class="input-field" required>
+                            <option value="0">Consulta Clínica</option>
+                            <option value="1">Aplicação de Vacina</option>
+                            <option value="2">Exames Laboratoriais</option>
+                            <option value="3">Procedimento Cirúrgico</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label>Evolução Clínica / Sintomas / Descrição</label>
+                    <textarea id="hist-desc" class="input-field" rows="3" required></textarea>
+                </div>
+
+                <div style="margin-bottom: 15px;">
+                    <label>Diagnóstico Suspeito/Definitivo (Opcional)</label>
+                    <input type="text" id="hist-diag" class="input-field">
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label>Peso Medido (Kg)</label>
+                        <input type="number" id="hist-peso" class="input-field" step="0.1" placeholder="Ex: 5.5">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Agendar Próxima Vacina (Opcional)</label>
+                        <input type="date" id="hist-vacina" class="input-field">
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <label style="font-size: 14px; color: #555;"><input type="checkbox" id="concluir-agendamento" checked> Marcar agendamento como Concluído</label>
+                    <button type="submit" class="btn-primary" style="padding: 12px 30px;">Salvar Prontuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Plugin VLibras (acessibilidade em Libras) -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+    <script>
+        const API_URL = "http://localhost:5288/api";
+
+        // Escapa textos vindos da API antes de inseri-los no HTML (evita injeção de código)
+        function esc(texto) {
+            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        let usuarioLogado = null;
+        try { usuarioLogado = JSON.parse(localStorage.getItem("usuario")); } catch (e) {}
+        
+        document.addEventListener("DOMContentLoaded", function() {
+            if (!usuarioLogado) {
+                window.location.href = "index.html";
+                return;
+            }
+            if (usuarioLogado.perfil !== "Veterinario" && usuarioLogado.perfil !== "Gerente") {
+                alert("Acesso Negado: Apenas Veterinários e Gerentes podem acessar esta tela.");
+                window.location.href = "dashboard.html";
+                return;
+            }
+            
+            try {
+                document.querySelectorAll('.menu-vet').forEach(el => el.style.display = 'block');
+                // Garante que o veterinário veja o botão de Visão Geral para não ficar preso
+                document.querySelectorAll('a[href="dashboard.html"]').forEach(el => el.parentElement.style.display = 'block');
+                
+                if (usuarioLogado.perfil === "Gerente") {
+                    document.querySelectorAll('.menu-staff').forEach(el => el.style.display = 'block');
+                    document.querySelectorAll('.menu-gerente').forEach(el => el.style.display = 'block');
+                }
+
+                let prefixo = usuarioLogado.perfil === "Gerente" ? "Gerente: " : "Dr(a). ";
+                const nomeVet = usuarioLogado.nome || "Usuário";
+                // Nomes que já começam com "Dr." aparecem completos, sem repetir o título
+                document.getElementById("nome-usuario").innerText = /^dr/i.test(nomeVet) && prefixo !== "Gerente: " ? nomeVet : prefixo + nomeVet.split(" ")[0];
+
+                carregarAgendaVeterinario();
+            } catch (err) { console.error(err); }
+        });
+
+        function sair() {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+
+        async function carregarAgendaVeterinario() {
+            const lista = document.getElementById("lista-pacientes");
+            try {
+                const hoje = new Date().toISOString().split('T')[0];
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/agendamento/dia?data=${hoje}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    const agendamentos = await res.json();
+                    // Fila do veterinário: só os atendimentos dele já CONFIRMADOS pela recepção (check-in).
+                    // RN04: um agendamento pendente não pode ser concluído sem passar pela confirmação.
+                    const meusPacientes = agendamentos.filter(a => a.idFuncionario === usuarioLogado.id && a.status === 1);
+
+                    if (meusPacientes.length === 0) {
+                        lista.innerHTML = "<p style='text-align: center; color: #2ecc71; font-weight: bold;'>Sua fila está vazia no momento.</p>";
+                        return;
+                    }
+
+                    lista.innerHTML = "";
+                    meusPacientes.forEach(a => {
+                        const hora = new Date(a.dataHoraInicio).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                        lista.innerHTML += `
+                            <div style="background: #fff; border-left: 4px solid var(--primary); padding: 12px; margin-bottom: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: 0.2s;" 
+                                 onclick="selecionarPaciente(${a.idPet}, ${a.id})" 
+                                 onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#fff'">
+                                <div style="display: flex; justify-content: space-between;">
+                                    <strong style="color: var(--secondary);">${hora}</strong>
+                                    <span style="font-size: 12px; background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">Confirmado</span>
+                                </div>
+                                <div style="margin-top: 5px; font-size: 14px; color: #555;"><strong>Pet:</strong> ${esc(a.nomePet)} (ID ${a.idPet}) | <strong>Tutor:</strong> ${esc(a.nomeTutor)} | <strong>Serviço:</strong> ${esc(a.nomeServico)}</div>
+                            </div>`;
+                    });
+                }
+            } catch (e) { lista.innerHTML = "<p style='color:red;'>Erro ao carregar a fila.</p>"; }
+        }
+
+        function selecionarPaciente(idPet, idAgendamento) {
+            document.getElementById("hist-pet").value = idPet;
+            document.getElementById("agendamento-id-ativo").value = idAgendamento;
+            buscarHistoricoPregresso(idPet);
+        }
+
+        async function buscarHistoricoPregresso(idPet) {
+            if (!idPet) return;
+            const painel = document.getElementById("painel-historico-anterior");
+            const conteudo = document.getElementById("historico-pregresso-conteudo");
+            painel.style.display = "block";
+            conteudo.innerHTML = "Buscando histórico...";
+            
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/historico/pet/${idPet}`, { headers: { "Authorization": `Bearer ${token}` } });
+                if (res.ok) {
+                    const hist = await res.json();
+                    if (hist.length === 0) conteudo.innerHTML = "Primeira consulta registrada no sistema.";
+                    else {
+                        conteudo.innerHTML = `<ul style="margin: 0; padding-left: 20px;">` + 
+                            hist.slice(0, 3).map(h => `<li style="margin-bottom: 5px;"><strong>${new Date(h.dataAtendimento).toLocaleDateString('pt-BR')}</strong>: ${esc(h.descricao)}</li>`).join('') + `</ul>`;
+                    }
+                } else { conteudo.innerHTML = "Erro ao carregar histórico."; }
+            } catch (e) { conteudo.innerHTML = "Erro de rede."; }
+        }
+
+        async function salvarHistorico(event) {
+            event.preventDefault();
+            
+            const dataVacina = document.getElementById("hist-vacina").value;
+            // Com a caixinha marcada, o ID do agendamento vai junto: a API registra o prontuário
+            // e conclui o agendamento na mesma operação
+            const idAgendamentoAtivo = parseInt(document.getElementById("agendamento-id-ativo").value) || null;
+            const concluir = document.getElementById("concluir-agendamento").checked;
+
+            const historico = {
+                idPet: parseInt(document.getElementById("hist-pet").value),
+                tipo: parseInt(document.getElementById("hist-tipo").value),
+                descricao: document.getElementById("hist-desc").value,
+                diagnostico: document.getElementById("hist-diag").value || null,
+                prescricao: "", // Pode ser expandido
+                pesoRegistro: parseFloat(document.getElementById("hist-peso").value) || 0,
+                proximaVacina: dataVacina ? (dataVacina + "T00:00:00") : null,
+                idAgendamento: concluir ? idAgendamentoAtivo : null
+            };
+
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/historico`, {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}` 
+                    },
+                    body: JSON.stringify(historico)
+                });
+
+                if (res.ok) {
+                    alert("Atendimento salvo com sucesso no prontuário eletrônico!");
+                    
+                    document.getElementById("form-historico").reset();
+                    document.getElementById("painel-historico-anterior").style.display = "none";
+                    document.getElementById("agendamento-id-ativo").value = "";
+                    carregarAgendaVeterinario(); // Atualiza a fila tirando o paciente concluído
+                } else {
+                    let msg = "Erro ao salvar histórico.";
+                    try { const j = await res.json(); msg = j.erro || j.Erro || j.mensagem || msg; } catch (e) {}
+                    alert(msg);
+                }
+            } catch (e) {
+                alert("Erro de conexão.");
+            }
+        }
+    </script>
+    <script src="ui.js"></script>
+</body>
+</html>

@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visão Geral - PataFácil</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Papéis de cor dos gráficos (paleta de referência validada: série 1 azul, série 2 laranja) */
+        .viz-root {
+            --surface-1: #ffffff;
+            --text-primary: #0b0b0b;
+            --text-secondary: #52514e;
+            --text-muted: #898781;
+            --gridline: #e1e0d9;
+            --baseline: #c3c2b7;
+            --series-1: #2a78d6;
+            --series-2: #eb6834;
+            --comparacao: #b4b2aa;      /* mês anterior: neutro, para o mês atual ganhar destaque */
+            --delta-bom: #006300;
+            --delta-ruim: #d03b3b;
+        }
+    </style>
+</head>
+<body class="portal-body has-sidebar viz-root">
+
+    <!-- Menu Lateral (Sidebar Fixo) -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">PataFácil</div>
+
+        <div class="sidebar-title">Menu Principal</div>
+        <ul class="sidebar-menu">
+            <li class="menu-staff" style="display:none;"><a href="atendente.html">Agenda do Balcão</a></li>
+            <li class="menu-staff" style="display:none;"><a href="ordens.html">Ordens de Serviço</a></li>
+            <li class="menu-staff" style="display:none;"><a href="dashboard.html" class="active">Visão Geral</a></li>
+            <li><a href="emails.html">Caixa de E-mail</a></li>
+            <li class="menu-vet" style="display:none;"><a href="veterinario.html">Painel Veterinário</a></li>
+            <li class="menu-gerente" style="display:none;"><a href="gerente.html">Gestão e Relatórios</a></li>
+            <li class="menu-staff" style="display:none;"><a href="estoque.html">Estoque e Vendas</a></li>
+        </ul>
+
+        <div class="sidebar-title" style="margin-top: 30px;">Sistema</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" onclick="sair()" style="color: #e74c3c;">Sair</a></li>
+        </ul>
+    </aside>
+
+    <nav class="navbar">
+        <div class="nav-logo">Visão Geral</div>
+        <div class="nav-user">
+            <span id="nome-usuario">Carregando...</span>
+            <a href="#" class="logout-btn" onclick="sair()">Sair</a>
+        </div>
+    </nav>
+
+    <main class="dashboard-container agenda-wrap painel">
+        <!-- Hoje -->
+        <section class="hoje-faixa" aria-label="Indicadores de hoje">
+            <div class="hoje-item"><span>Atendidos hoje</span><strong id="kpi-atendidos">…</strong></div>
+            <div class="hoje-item"><span>Demanda prevista hoje</span><strong id="kpi-demanda">…</strong><small id="kpi-demanda-legenda">agendamentos estimados pela IA</small></div>
+            <div class="hoje-item"><span>Pagamento mais usado</span><strong id="kpi-pagamento">…</strong></div>
+        </section>
+
+        <!-- Filtro único: o mês vale para todos os gráficos abaixo -->
+        <div class="agenda-topo" style="margin-top: 26px;">
+            <div>
+                <h2 id="titulo-mes">Mês</h2>
+                <p class="agenda-sub" id="sub-mes">Comparado com o mês anterior</p>
+            </div>
+            <div class="agenda-nav">
+                <button type="button" class="btn-icone" onclick="moverMes(-1)" aria-label="Mês anterior" title="Mês anterior">‹</button>
+                <button type="button" class="btn-secondary" onclick="irMesAtual()">Este mês</button>
+                <button type="button" class="btn-icone" onclick="moverMes(1)" aria-label="Próximo mês" title="Próximo mês">›</button>
+            </div>
+        </div>
+
+        <div id="painel-conteudo">
+            <!-- Comparação mês a mês -->
+            <section class="tiles" id="tiles" aria-label="Comparação com o mês anterior"></section>
+
+            <!-- Andamento do mês -->
+            <section class="grafico-card largo">
+                <header class="grafico-topo">
+                    <div>
+                        <h3>Andamento do faturamento</h3>
+                        <p>Faturamento acumulado dia a dia (serviços + produtos)</p>
+                    </div>
+                    <div class="legenda" id="legenda-andamento"></div>
+                </header>
+                <div class="grafico-area alto"><canvas id="g-andamento" role="img" aria-label="Faturamento acumulado do mês atual e do mês anterior"></canvas></div>
+                <details class="ver-tabela"><summary>Ver tabela</summary><div id="t-andamento"></div></details>
+            </section>
+
+            <div class="graficos-grade">
+                <section class="grafico-card">
+                    <header class="grafico-topo"><div><h3>Serviços mais vendidos</h3><p id="sub-servicos">Top 5 do mês · atendimentos concluídos</p></div></header>
+                    <div class="grafico-area ranking" id="area-servicos"><canvas id="g-servicos" role="img" aria-label="Serviços mais vendidos no mês"></canvas></div>
+                    <details class="ver-tabela"><summary>Ver todos os serviços</summary><div id="t-servicos"></div></details>
+                </section>
+
+                <section class="grafico-card">
+                    <header class="grafico-topo"><div><h3>Produtos mais vendidos</h3><p>Top 5 do mês · unidades vendidas</p></div></header>
+                    <div class="grafico-area ranking" id="area-produtos"><canvas id="g-produtos" role="img" aria-label="Produtos mais vendidos no mês"></canvas></div>
+                    <details class="ver-tabela"><summary>Ver tabela</summary><div id="t-produtos"></div></details>
+                </section>
+
+                <section class="grafico-card">
+                    <header class="grafico-topo"><div><h3>Clientes que mais gastaram</h3><p>Top 5 do mês · serviços pagos + compras</p></div></header>
+                    <div class="grafico-area ranking" id="area-clientes"><canvas id="g-clientes" role="img" aria-label="Clientes que mais gastaram no mês"></canvas></div>
+                    <details class="ver-tabela"><summary>Ver tabela</summary><div id="t-clientes"></div></details>
+                </section>
+
+                <section class="grafico-card">
+                    <header class="grafico-topo"><div><h3 id="titulo-movimento">Movimento da próxima semana</h3><p id="sub-movimento">Previsão da IA por dia</p></div></header>
+                    <div class="grafico-area" id="area-movimento"><canvas id="g-movimento" role="img" aria-label="Movimento previsto por dia da semana"></canvas></div>
+                    <details class="ver-tabela"><summary>Ver tabela</summary><div id="t-movimento"></div></details>
+                </section>
+            </div>
+
+            <!-- Sugestões de promoção -->
+            <section class="promocoes">
+                <header class="grafico-topo"><div><h3>Sugestões de promoção para a semana</h3><p>Geradas a partir do movimento previsto, da validade dos lotes, do estoque parado e das vendas do mês</p></div></header>
+                <div class="promo-grade" id="promocoes"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Plugin VLibras -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <script>
+        const API_URL = "http://localhost:5288/api";
+
+        // Escapa textos vindos da API antes de inseri-los no HTML (evita injeção de código)
+        function esc(texto) {
+            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        let usuarioLogado = null;
+        try { usuarioLogado = JSON.parse(localStorage.getItem("usuario")); } catch (e) {}
+
+        const moeda = v => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        const moedaCurta = v => v >= 1000 ? "R$ " + (v / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + " mil" : moeda(v);
+        const cor = nome => getComputedStyle(document.body).getPropertyValue(nome).trim();
+        const graficos = {};
+        let ano = new Date().getFullYear();
+        let mes = new Date().getMonth() + 1;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (!usuarioLogado) {
+                window.location.href = "index.html";
+                return;
+            }
+            if (usuarioLogado.perfil === "Tutor") {
+                window.location.href = "portal.html";
+                return;
+            }
+            const perfil = usuarioLogado.perfil;
+            const prefixo = { Veterinario: "Dr(a). ", Gerente: "Gerente: ", Atendente: "Atendente: " }[perfil] || "";
+            document.getElementById("nome-usuario").innerText = prefixo + (usuarioLogado.nome || "Usuário").split(" ")[0];
+            if (perfil === "Atendente" || perfil === "Gerente") document.querySelectorAll('.menu-staff').forEach(el => el.style.display = 'block');
+            if (perfil === "Veterinario" || perfil === "Gerente") document.querySelectorAll('.menu-vet').forEach(el => el.style.display = 'block');
+            if (perfil === "Gerente") document.querySelectorAll('.menu-gerente').forEach(el => el.style.display = 'block');
+
+            carregarHoje();
+            if (perfil === "Atendente" || perfil === "Gerente") carregarPainel();
+            else document.getElementById("painel-conteudo").innerHTML = `<div class="estado-vazio">Os gráficos de faturamento ficam disponíveis para a atendente e o gerente.</div>`;
+        });
+
+        function sair() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("usuario");
+            window.location.href = "index.html";
+        }
+
+        async function api(caminho) {
+            const res = await fetch(`${API_URL}${caminho}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
+            if (res.status === 401) throw new Error("Sua sessão expirou. Faça login novamente.");
+            if (!res.ok) throw new Error(`Erro ${res.status} ao carregar os dados.`);
+            return res.json();
+        }
+
+        // ===== Indicadores de hoje =====
+        async function carregarHoje() {
+            try {
+                const kpis = await api("/relatorios/dashboard-kpis");
+                document.getElementById("kpi-atendidos").innerText = kpis.clientesAtendidosHoje;
+                const nomes = { Dinheiro: "Dinheiro", CartaoCredito: "Crédito", CartaoDebito: "Débito", Pix: "Pix", Nenhuma: "—" };
+                document.getElementById("kpi-pagamento").innerText = nomes[kpis.formaPagamentoFavorita] ?? kpis.formaPagamentoFavorita;
+            } catch (e) { console.error(e); }
+            try {
+                const previsao = await api("/ml/previsao-demanda-hoje");
+                document.getElementById("kpi-demanda").innerText = previsao.previsao_agendamentos;
+            } catch (e) {
+                // A IA é um serviço à parte: se estiver desligada, o painel continua funcionando
+                document.getElementById("kpi-demanda").innerText = "—";
+                document.getElementById("kpi-demanda-legenda").innerText = "serviço de IA indisponível";
+            }
+        }
+
+        // ===== Painel do mês =====
+        function moverMes(delta) {
+            const d = new Date(ano, mes - 1 + delta, 1);
+            ano = d.getFullYear();
+            mes = d.getMonth() + 1;
+            carregarPainel();
+        }
+        function irMesAtual() { ano = new Date().getFullYear(); mes = new Date().getMonth() + 1; carregarPainel(); }
+
+        async function carregarPainel() {
+            const conteudo = document.getElementById("painel-conteudo");
+            conteudo.classList.add("recarregando"); // mantém o desenho anterior esmaecido, sem "pular" a tela
+            try {
+                const p = await api(`/relatorios/painel?ano=${ano}&mes=${mes}`);
+                document.getElementById("titulo-mes").textContent = p.nomeMes;
+                document.getElementById("sub-mes").textContent = `Comparado com ${p.nomeMesAnterior.toLowerCase()}${p.mesCorrente ? " · mês em andamento" : ""}`;
+                desenharTiles(p);
+                if (typeof Chart === "undefined") {
+                    document.querySelectorAll(".grafico-area").forEach(a => a.innerHTML = `<div class="estado-vazio">Não foi possível carregar a biblioteca de gráficos (verifique a internet). Os números estão em “Ver tabela”.</div>`);
+                } else {
+                    configurarChart();
+                    desenharAndamento(p);
+                    desenharBarras("clientes", p.topClientes.map(c => ({ rotulo: c.nome, valor: c.total, dica: [`Serviços: ${moeda(c.servicos)}`, `Produtos: ${moeda(c.produtos)}`, `${c.visitas} ${c.visitas === 1 ? "compra/atendimento" : "compras/atendimentos"}`] })), moeda, "Nenhuma venda para cliente identificado neste mês.");
+                    desenharBarras("servicos", p.servicos.filter(s => s.quantidade > 0).slice(0, 5).map(s => ({ rotulo: s.nome, valor: s.quantidade, dica: [`Receita: ${moeda(s.receita)}`, `Mês anterior: ${s.quantidadeAnterior}`] })), v => `${v} ${v === 1 ? "atendimento" : "atendimentos"}`, "Nenhum atendimento concluído neste mês.");
+                    desenharBarras("produtos", p.topProdutos.map(x => ({ rotulo: x.nome, valor: x.quantidade, dica: [`Receita: ${moeda(x.receita)}`] })), v => `${v} un.`, "Nenhum produto vendido neste mês.");
+                    desenharMovimento(p);
+                }
+                desenharTabelas(p);
+                desenharPromocoes(p.promocoes);
+            } catch (e) {
+                document.getElementById("tiles").innerHTML = `<div class="estado-vazio" style="grid-column:1/-1;">${esc(e.message === "Failed to fetch" ? "Não foi possível conectar à API." : e.message)}</div>`;
+            } finally {
+                conteudo.classList.remove("recarregando");
+            }
+        }
+
+        // Variação contra o mês anterior: seta + texto, nunca só a cor
+        function variacao(atual, anterior, menorEhMelhor = false) {
+            if (!anterior) return atual ? `<span class="delta neutro">novo neste mês</span>` : `<span class="delta neutro">sem movimento</span>`;
+            const pct = (atual - anterior) / anterior * 100;
+            if (Math.abs(pct) < 0.5) return `<span class="delta neutro">= igual ao anterior</span>`;
+            const subiu = pct > 0;
+            const bom = menorEhMelhor ? !subiu : subiu;
+            return `<span class="delta ${bom ? "bom" : "ruim"}">${subiu ? "▲" : "▼"} ${Math.abs(pct).toFixed(0)}% <span class="vs">vs. anterior</span></span>`;
+        }
+
+        function desenharTiles(p) {
+            const a = p.atual, b = p.anterior;
+            const tiles = [
+                { titulo: "Faturamento total", valor: moeda(a.receitaTotal), ant: moeda(b.receitaTotal), delta: variacao(a.receitaTotal, b.receitaTotal), destaque: true },
+                { titulo: "Serviços", valor: moeda(a.receitaServicos), ant: moeda(b.receitaServicos), delta: variacao(a.receitaServicos, b.receitaServicos) },
+                { titulo: "Produtos", valor: moeda(a.receitaProdutos), ant: moeda(b.receitaProdutos), delta: variacao(a.receitaProdutos, b.receitaProdutos) },
+                { titulo: "Atendimentos", valor: a.atendimentos, ant: b.atendimentos, delta: variacao(a.atendimentos, b.atendimentos) },
+                { titulo: "Ticket médio", valor: moeda(a.ticketMedio), ant: moeda(b.ticketMedio), delta: variacao(a.ticketMedio, b.ticketMedio) },
+                { titulo: "Novos clientes", valor: a.novosClientes, ant: b.novosClientes, delta: variacao(a.novosClientes, b.novosClientes) }
+            ];
+            document.getElementById("tiles").innerHTML = tiles.map(t => `
+                <div class="tile ${t.destaque ? "destaque" : ""}">
+                    <span class="tile-titulo">${t.titulo}</span>
+                    <strong class="tile-valor">${t.valor}</strong>
+                    ${t.delta}
+                    <span class="tile-ant">${esc(p.nomeMesAnterior)}: ${t.ant}</span>
+                </div>`).join("");
+        }
+
+        function configurarChart() {
+            Chart.defaults.font.family = "'Inter', system-ui, sans-serif";
+            Chart.defaults.font.size = 12.5;
+            Chart.defaults.color = cor("--text-muted");
+            Chart.defaults.plugins.legend.display = false; // legenda própria, em HTML
+            Chart.defaults.plugins.tooltip.backgroundColor = "#1f2937";
+            Chart.defaults.plugins.tooltip.padding = 10;
+            Chart.defaults.plugins.tooltip.cornerRadius = 8;
+            Chart.defaults.plugins.tooltip.titleFont = { weight: "800" };
+            Chart.defaults.animation.duration = 700;
+            Chart.defaults.animation.easing = "easeOutQuart";
+            Chart.defaults.maintainAspectRatio = false;
+        }
+
+        const eixoGrade = () => ({ color: cor("--gridline"), lineWidth: 1, drawTicks: false });
+        const eixoBorda = () => ({ display: true, color: cor("--baseline") });
+
+        function recriar(id, config) {
+            if (graficos[id]) graficos[id].destroy();
+            graficos[id] = new Chart(document.getElementById("g-" + id), config);
+        }
+
+        // Linha: acumulado do mês atual (destaque) contra o mês anterior (neutro), num único eixo
+        function desenharAndamento(p) {
+            const dias = Math.max(p.diario.atual.length, p.diario.anterior.length);
+            const rotulos = Array.from({ length: dias }, (_, i) => String(i + 1));
+            const atual = p.diario.atual.map(v => v < 0 ? null : v); // dias que ainda não chegaram ficam vazios
+            const ultimoIndice = atual.reduce((u, v, i) => v === null ? u : i, -1);
+            const nomeAtual = p.nomeMes.split(" ")[0];
+
+            document.getElementById("legenda-andamento").innerHTML = `
+                <span><i style="background:${cor("--series-1")}"></i>${esc(nomeAtual)}</span>
+                <span><i style="background:${cor("--comparacao")}"></i>${esc(p.nomeMesAnterior)}</span>`;
+
+            recriar("andamento", {
+                type: "line",
+                data: {
+                    labels: rotulos,
+                    datasets: [
+                        { label: nomeAtual, data: atual, borderColor: cor("--series-1"), backgroundColor: "rgba(42,120,214,0.08)", fill: true, borderWidth: 2, cubicInterpolationMode: "monotone", pointRadius: atual.map((_, i) => i === ultimoIndice ? 4 : 0), pointBackgroundColor: cor("--series-1"), pointBorderColor: "#fff", pointBorderWidth: 2, pointHoverRadius: 5 },
+                        { label: p.nomeMesAnterior, data: p.diario.anterior, borderColor: cor("--comparacao"), borderWidth: 2, cubicInterpolationMode: "monotone", pointRadius: 0, pointHoverRadius: 4, fill: false }
+                    ]
+                },
+                options: {
+                    interaction: { mode: "index", intersect: false }, // linha vertical: os dois meses no mesmo dia
+                    scales: {
+                        x: { grid: { display: false }, border: eixoBorda(), ticks: { maxRotation: 0, autoSkipPadding: 14, callback: (v, i) => `dia ${rotulos[i]}` } },
+                        y: { beginAtZero: true, grid: eixoGrade(), border: { display: false }, ticks: { callback: v => moedaCurta(v), maxTicksLimit: 5, padding: 8 } }
+                    },
+                    plugins: {
+                        tooltip: { callbacks: { title: itens => `Dia ${itens[0].label}`, label: i => i.raw === null ? null : ` ${i.dataset.label}: ${moeda(i.raw)}` } }
+                    }
+                },
+                plugins: [rotuloFinal(ultimoIndice)]
+            });
+        }
+
+        // Rótulo direto só no último ponto do mês atual (o valor que importa), sem número em cada ponto
+        function rotuloFinal(indice) {
+            return {
+                id: "rotuloFinal",
+                afterDatasetsDraw(chart) {
+                    if (indice < 0) return;
+                    const ponto = chart.getDatasetMeta(0).data[indice];
+                    const valor = chart.data.datasets[0].data[indice];
+                    if (!ponto || valor === null) return;
+                    const ctx = chart.ctx;
+                    ctx.save();
+                    ctx.font = "700 13px Inter, system-ui, sans-serif";
+                    ctx.fillStyle = cor("--text-primary");
+                    const texto = moeda(valor);
+                    const largura = ctx.measureText(texto).width;
+                    const x = Math.min(ponto.x + 8, chart.chartArea.right - largura);
+                    ctx.fillText(texto, x, ponto.y - 10);
+                    ctx.restore();
+                }
+            };
+        }
+
+        // Barras horizontais de uma série (uma cor só), ordenadas, com o valor ao fim de cada barra
+        function desenharBarras(id, itens, formatar, mensagemVazia) {
+            const area = document.getElementById("area-" + id);
+            const validos = itens.filter(i => i.valor > 0).slice(0, 5); // ranking: no máximo 5 barras
+            if (!validos.length || validos.every(i => !i.valor)) {
+                if (graficos[id]) { graficos[id].destroy(); delete graficos[id]; }
+                area.innerHTML = `<div class="estado-vazio pequeno">${mensagemVazia}</div><canvas id="g-${id}" hidden></canvas>`;
+                return;
+            }
+            if (!document.getElementById("g-" + id) || document.getElementById("g-" + id).hidden) area.innerHTML = `<canvas id="g-${id}" role="img"></canvas>`;
+            const maximo = Math.max(...validos.map(i => i.valor));
+            recriar(id, {
+                type: "bar",
+                data: {
+                    labels: validos.map(i => i.rotulo),
+                    datasets: [{ data: validos.map(i => i.valor), backgroundColor: cor("--series-1"), hoverBackgroundColor: "#256abf", borderRadius: 4, borderSkipped: "start", barThickness: 18 }]
+                },
+                options: {
+                    indexAxis: "y",
+                    layout: { padding: { right: 90 } }, // espaço para o valor ao fim da barra
+                    scales: {
+                        x: { beginAtZero: true, suggestedMax: maximo * 1.05, grid: eixoGrade(), border: { display: false }, ticks: { display: false } },
+                        y: { grid: { display: false }, border: eixoBorda(), ticks: { color: cor("--text-secondary"), font: { weight: "700" }, callback: function(v) { const t = this.getLabelForValue(v); return t.length > 22 ? t.slice(0, 21) + "…" : t; } } }
+                    },
+                    plugins: {
+                        tooltip: { callbacks: { label: i => " " + formatar(i.raw), afterLabel: i => validos[i.dataIndex].dica } }
+                    }
+                },
+                plugins: [{
+                    id: "valorNaPonta",
+                    afterDatasetsDraw(chart) {
+                        const ctx = chart.ctx;
+                        ctx.save();
+                        ctx.font = "600 12.5px Inter, system-ui, sans-serif";
+                        ctx.fillStyle = cor("--text-secondary");
+                        ctx.textBaseline = "middle";
+                        chart.getDatasetMeta(0).data.forEach((barra, i) => ctx.fillText(formatar(validos[i].valor), barra.x + 8, barra.y));
+                        ctx.restore();
+                    }
+                }]
+            });
+        }
+
+        // Previsão da IA para a próxima semana (ou média histórica se a IA estiver fora do ar).
+        // Ênfase: o dia mais fraco em laranja, os demais em azul.
+        function desenharMovimento(p) {
+            const usaIa = p.previsao.length > 0;
+            const dados = usaIa
+                ? p.previsao.map(x => ({ rotulo: x.dia.replace("-feira", ""), completo: `${x.dia}, ${new Date(x.data).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`, valor: x.previsto }))
+                : p.movimento.map(x => ({ rotulo: x.dia.replace("-feira", ""), completo: x.dia, valor: x.media }));
+            document.getElementById("titulo-movimento").textContent = usaIa ? "Movimento da próxima semana" : "Movimento por dia da semana";
+            document.getElementById("sub-movimento").innerHTML = usaIa
+                ? `Previsão da IA · <span class="marca-legenda"><i style="background:${cor("--series-2")}"></i>dia mais fraco</span>`
+                : `Média das últimas 8 semanas (IA indisponível) · <span class="marca-legenda"><i style="background:${cor("--series-2")}"></i>dia mais fraco</span>`;
+            const menor = dados.reduce((m, d, i) => d.valor < dados[m].valor ? i : m, 0);
+            const area = document.getElementById("area-movimento");
+            area.style.height = "260px";
+            recriar("movimento", {
+                type: "bar",
+                data: {
+                    labels: dados.map(d => d.rotulo),
+                    datasets: [{ data: dados.map(d => d.valor), backgroundColor: dados.map((_, i) => i === menor ? cor("--series-2") : cor("--series-1")), borderRadius: 4, borderSkipped: "start", maxBarThickness: 34 }]
+                },
+                options: {
+                    scales: {
+                        x: { grid: { display: false }, border: eixoBorda(), ticks: { color: cor("--text-secondary"), font: { weight: "700" } } },
+                        y: { beginAtZero: true, grid: eixoGrade(), border: { display: false }, ticks: { maxTicksLimit: 5, padding: 8 } }
+                    },
+                    plugins: {
+                        tooltip: { callbacks: { title: i => dados[i[0].dataIndex].completo, label: i => ` ${usaIa ? "Previstos" : "Média"}: ${i.raw.toLocaleString("pt-BR")} atendimentos`, afterLabel: i => i.dataIndex === menor ? "Dia mais fraco da semana" : "" } }
+                    }
+                }
+            });
+        }
+
+        // Tabelas equivalentes aos gráficos (acessibilidade e para quem prefere ver os números)
+        function tabela(cabecalho, linhas) {
+            return `<table class="tabela-est"><thead><tr>${cabecalho.map((c, i) => `<th class="${i ? "num" : ""}">${c}</th>`).join("")}</tr></thead>
+                <tbody>${linhas.length ? linhas.map(l => `<tr>${l.map((c, i) => `<td class="${i ? "num" : ""}">${c}</td>`).join("")}</tr>`).join("") : `<tr><td colspan="${cabecalho.length}" class="vazio">Sem dados.</td></tr>`}</tbody></table>`;
+        }
+
+        function desenharTabelas(p) {
+            const dias = Math.max(p.diario.atual.length, p.diario.anterior.length);
+            const linhas = [];
+            for (let i = 0; i < dias; i++) {
+                const a = p.diario.atual[i];
+                linhas.push([`Dia ${i + 1}`, a === undefined || a < 0 ? "—" : moeda(a), p.diario.anterior[i] === undefined ? "—" : moeda(p.diario.anterior[i])]);
+            }
+            document.getElementById("t-andamento").innerHTML = tabela(["Dia", esc(p.nomeMes.split(" ")[0]) + " (acumulado)", esc(p.nomeMesAnterior) + " (acumulado)"], linhas);
+            document.getElementById("t-clientes").innerHTML = tabela(["Cliente", "Total", "Serviços", "Produtos"], p.topClientes.map(c => [esc(c.nome), moeda(c.total), moeda(c.servicos), moeda(c.produtos)]));
+            document.getElementById("t-servicos").innerHTML = tabela(["Serviço", "Atendimentos", "Receita", "Mês anterior"], p.servicos.map(s => [esc(s.nome), s.quantidade, moeda(s.receita), s.quantidadeAnterior]));
+            const semAtendimento = p.servicos.filter(s => !s.quantidade).length;
+            document.getElementById("sub-servicos").textContent = `Top 5 do mês · atendimentos concluídos${semAtendimento ? ` · ${semAtendimento} de ${p.servicos.length} serviços sem atendimento` : ""}`;
+            document.getElementById("t-produtos").innerHTML = tabela(["Produto", "Unidades", "Receita"], p.topProdutos.map(x => [esc(x.nome), x.quantidade, moeda(x.receita)]));
+            document.getElementById("t-movimento").innerHTML = p.previsao.length
+                ? tabela(["Dia", "Previstos (IA)"], p.previsao.map(x => [esc(x.dia), x.previsto]))
+                : tabela(["Dia", "Média (8 semanas)"], p.movimento.map(x => [esc(x.dia), x.media.toLocaleString("pt-BR")]));
+        }
+
+        function desenharPromocoes(lista) {
+            document.getElementById("promocoes").innerHTML = lista.length ? lista.map(pr => `
+                <article class="promo promo-${esc(pr.tipo)}">
+                    <span class="promo-icone">${pr.icone}</span>
+                    <div>
+                        <h4>${esc(pr.titulo)}</h4>
+                        <p class="promo-acao">${esc(pr.acao)}</p>
+                        <p class="promo-motivo">Por quê: ${esc(pr.motivo)}</p>
+                    </div>
+                </article>`).join("") : `<div class="estado-vazio pequeno">Nenhuma sugestão no momento: movimento equilibrado e estoque em dia.</div>`;
+        }
+    </script>
+    <script src="ui.js"></script>
+</body>
+</html>

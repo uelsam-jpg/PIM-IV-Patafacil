@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque e Vendas - PataFácil</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="portal-body has-sidebar">
+    <!-- Menu Lateral -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">PataFácil</div>
+
+        <div class="sidebar-title">Menu Principal</div>
+        <ul class="sidebar-menu">
+            <li class="menu-staff" style="display:none;"><a href="atendente.html">Agenda do Balcão</a></li>
+            <li class="menu-staff" style="display:none;"><a href="ordens.html">Ordens de Serviço</a></li>
+            <li><a href="dashboard.html">Visão Geral</a></li>
+            <li><a href="emails.html">Caixa de E-mail</a></li>
+            <li class="menu-vet" style="display:none;"><a href="veterinario.html">Painel Veterinário</a></li>
+            <li class="menu-gerente" style="display:none;"><a href="gerente.html">Gestão e Relatórios</a></li>
+            <li class="menu-staff" style="display:none;"><a href="estoque.html" class="active">Estoque e Vendas</a></li>
+        </ul>
+
+        <div class="sidebar-title" style="margin-top: 30px;">Sistema</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" onclick="sair()" style="color: #e74c3c;">Sair</a></li>
+        </ul>
+    </aside>
+
+    <nav class="navbar">
+        <div class="nav-logo">Estoque e Vendas</div>
+        <div class="nav-user">
+            <span id="nome-usuario">Carregando...</span>
+            <a href="#" class="logout-btn" onclick="sair()">Sair</a>
+        </div>
+    </nav>
+
+    <main class="dashboard-container agenda-wrap">
+        <div class="agenda-topo">
+            <div>
+                <h2>Estoque e Vendas</h2>
+                <p class="agenda-sub">Venda no balcão, recebimento de mercadoria e situação do estoque</p>
+            </div>
+        </div>
+
+        <!-- Alertas: estoque no ponto de reposição (RN15) e validades próximas -->
+        <div id="alertas" class="est-alertas"></div>
+
+        <div class="abas" role="tablist">
+            <button type="button" class="aba ativa" data-aba="venda" role="tab" onclick="trocarAba('venda')">Registrar Venda</button>
+            <button type="button" class="aba" data-aba="entrada" role="tab" onclick="trocarAba('entrada')">Entrada de Mercadoria</button>
+            <button type="button" class="aba" data-aba="planilha" role="tab" onclick="trocarAba('planilha')">Planilha de Estoque <span class="contador" id="c-produtos">0</span></button>
+        </div>
+
+        <!-- ================= VENDA ================= -->
+        <section id="sec-venda" class="est-secao">
+            <div class="venda-grid">
+                <div class="est-painel">
+                    <h3 class="est-titulo">1. Cliente</h3>
+                    <div id="cliente-escolhido" class="chip-escolha" hidden></div>
+                    <div class="busca" id="busca-cliente-caixa">
+                        <input type="search" id="busca-cliente" class="input-field" placeholder="Digite o nome, CPF ou telefone do cliente..." autocomplete="off"
+                               role="combobox" aria-expanded="false" aria-controls="lista-cliente" aria-autocomplete="list">
+                        <ul class="busca-lista" id="lista-cliente" role="listbox" hidden></ul>
+                    </div>
+                    <p class="pg-dica" id="dica-avulso">Sem cliente escolhido, a venda é registrada como <strong>cliente avulso</strong>.</p>
+
+                    <h3 class="est-titulo" style="margin-top: 22px;">2. Produtos</h3>
+                    <div class="busca">
+                        <input type="search" id="busca-produto" class="input-field" placeholder="Digite o nome do produto para adicionar..." autocomplete="off"
+                               role="combobox" aria-expanded="false" aria-controls="lista-produto" aria-autocomplete="list">
+                        <ul class="busca-lista" id="lista-produto" role="listbox" hidden></ul>
+                    </div>
+                    <p class="pg-dica">Escolha na lista (ou use ↑ ↓ e Enter). Cada escolha adiciona 1 unidade ao carrinho.</p>
+                </div>
+
+                <div class="est-painel carrinho">
+                    <h3 class="est-titulo">Carrinho</h3>
+                    <ul id="carrinho-lista" class="carrinho-lista"></ul>
+                    <div class="carrinho-total">
+                        <span>Total</span>
+                        <strong id="venda-total">R$ 0,00</strong>
+                    </div>
+
+                    <span class="pg-label">3. Forma de pagamento</span>
+                    <div class="pg-formas" role="radiogroup" aria-label="Forma de pagamento">
+                        <button type="button" class="pg-forma" role="radio" aria-checked="false" data-forma="3" onclick="escolherForma(3)">Pix</button>
+                        <button type="button" class="pg-forma" role="radio" aria-checked="false" data-forma="0" onclick="escolherForma(0)">Dinheiro</button>
+                        <button type="button" class="pg-forma" role="radio" aria-checked="false" data-forma="2" onclick="escolherForma(2)">Débito</button>
+                        <button type="button" class="pg-forma" role="radio" aria-checked="false" data-forma="1" onclick="escolherForma(1)">Crédito</button>
+                    </div>
+
+                    <div class="pg-troco" id="caixa-troco" hidden>
+                        <label for="valor-recebido">Valor entregue pelo cliente</label>
+                        <div class="campo-moeda" style="background:white;"><span>R$</span><input type="number" id="valor-recebido" min="0" step="0.01" inputmode="decimal" oninput="atualizarTroco()"></div>
+                        <div class="atalhos-dinheiro" id="atalhos-dinheiro"></div>
+                        <div class="pg-troco-valor" id="valor-troco"></div>
+                    </div>
+
+                    <button type="button" class="btn-primary" id="btn-concluir" style="width: 100%; margin-top: 18px;" onclick="finalizarVenda()">Concluir venda</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= ENTRADA DE MERCADORIA ================= -->
+        <section id="sec-entrada" class="est-secao" hidden>
+            <form id="form-entrada" class="est-painel" onsubmit="registrarEntrada(event)" novalidate>
+                <p class="aviso-aba" style="margin: 0 0 16px;">Use quando a mercadoria do fornecedor chegar. Escolha um produto do catálogo ou cadastre um produto novo junto com a entrada.</p>
+
+                <div class="entrada-topo">
+                    <h3 class="est-titulo" style="margin: 0;">Produto</h3>
+                    <div class="seletor-modo" role="radiogroup" aria-label="Tipo de produto">
+                        <button type="button" id="modo-existente" class="ativo" role="radio" aria-checked="true" onclick="modoProduto('existente')">Produto já cadastrado</button>
+                        <button type="button" id="modo-novo" role="radio" aria-checked="false" onclick="modoProduto('novo')">+ Cadastrar produto novo</button>
+                    </div>
+                </div>
+
+                <div id="area-existente">
+                    <div id="produto-escolhido" class="chip-escolha" hidden></div>
+                    <div class="busca" id="busca-entrada-caixa">
+                        <input type="search" id="busca-entrada" class="input-field" placeholder="Digite o nome do produto recebido..." autocomplete="off"
+                               role="combobox" aria-expanded="false" aria-controls="lista-entrada" aria-autocomplete="list">
+                        <ul class="busca-lista" id="lista-entrada" role="listbox" hidden></ul>
+                    </div>
+                </div>
+
+                <!-- Cadastro de produto novo junto com a entrada -->
+                <div id="campos-novo" class="campos-novo" hidden>
+                    <div style="margin-bottom: 14px;"><label for="novo-nome" class="rotulo-campo">Nome do produto *</label>
+                        <input type="text" id="novo-nome" class="input-field" maxlength="120" placeholder="Ex.: Ração Golden Filhotes 3kg" style="margin: 0;"></div>
+                    <div class="form-grade">
+                        <div><label for="novo-categoria">Categoria</label>
+                            <select id="novo-categoria" class="input-field">
+                                <option value="0">Alimento</option>
+                                <option value="1">Medicamento</option>
+                                <option value="2">Acessório</option>
+                                <option value="3">Higiene</option>
+                                <option value="4" selected>Outro</option>
+                            </select></div>
+                        <div><label for="novo-marca">Marca (opcional)</label><input type="text" id="novo-marca" class="input-field" maxlength="80"></div>
+                        <div><label for="novo-ponto">Avisar quando restarem</label><input type="number" id="novo-ponto" class="input-field" min="0" value="5"></div>
+                    </div>
+                </div>
+
+                <h3 class="est-titulo" style="margin-top: 20px;">Nota fiscal</h3>
+                <div class="form-grade">
+                    <div><label for="ent-nota">Número da nota *</label><input type="text" id="ent-nota" class="input-field" maxlength="30" placeholder="Ex.: 000123456"></div>
+                    <div><div class="rotulo-linha"><label for="busca-fornecedor">Fornecedor</label>
+                            <button type="button" class="link-acao" onclick="abrirNovoFornecedor()">+ Novo fornecedor</button></div>
+                        <div id="fornecedor-escolhido" class="chip-escolha chip-compacto" hidden></div>
+                        <div class="busca" id="busca-fornecedor-caixa">
+                            <input type="search" id="busca-fornecedor" class="input-field" maxlength="120" placeholder="Buscar ou cadastrar fornecedor..." autocomplete="off"
+                                   role="combobox" aria-expanded="false" aria-controls="lista-fornecedor" aria-autocomplete="list">
+                            <ul class="busca-lista" id="lista-fornecedor" role="listbox" hidden></ul>
+                        </div></div>
+                    <div><label for="ent-validade">Validade do lote (se tiver)</label><input type="date" id="ent-validade" class="input-field"></div>
+                </div>
+
+                <h3 class="est-titulo" style="margin-top: 20px;">Quantidade e preço</h3>
+                <div class="form-grade quatro">
+                    <div><label for="ent-qtd">Quantidade recebida *</label><input type="number" id="ent-qtd" class="input-field" min="1" step="1" placeholder="Ex.: 20" oninput="calcularPreco()"></div>
+                    <div><label for="ent-custo">Valor de compra (unidade) *</label>
+                        <div class="campo-moeda"><span>R$</span><input type="number" id="ent-custo" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" oninput="calcularPreco('custo')"></div></div>
+                    <div><label for="ent-margem">Margem de lucro</label>
+                        <div class="campo-moeda"><input type="number" id="ent-margem" min="0" max="95" step="0.5" value="45" style="padding-left:14px;" oninput="calcularPreco('margem')"><span>%</span></div></div>
+                    <div><label for="ent-preco">Preço de venda *</label>
+                        <div class="campo-moeda destaque"><span>R$</span><input type="number" id="ent-preco" min="0.01" step="0.01" inputmode="decimal" placeholder="0,00" oninput="calcularPreco('preco')"></div></div>
+                </div>
+                <div class="resumo-preco" id="resumo-preco">Informe o valor de compra para ver o preço sugerido com margem de 45%.</div>
+
+                <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 20px;">
+                    <button type="button" class="btn-secondary" onclick="limparEntrada()">Limpar</button>
+                    <button type="submit" class="btn-primary" id="btn-salvar-entrada">Salvar entrada</button>
+                </div>
+            </form>
+
+            <div class="est-painel" style="margin-top: 22px;">
+                <h3 class="est-titulo">Últimas entradas</h3>
+                <div class="tabela-rolagem">
+                    <table class="tabela-est">
+                        <thead><tr><th>Data</th><th>Nota</th><th>Produto</th><th class="num">Qtd.</th><th class="num">Custo</th><th class="num">Venda</th><th>Validade</th><th>Recebido por</th></tr></thead>
+                        <tbody id="tabela-entradas"><tr><td colspan="8" class="vazio">Carregando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= PLANILHA ================= -->
+        <section id="sec-planilha" class="est-secao" hidden>
+            <div class="est-painel">
+                <div class="busca" style="max-width: 360px; margin-bottom: 14px;">
+                    <input type="search" id="filtro-planilha" class="input-field" placeholder="Filtrar produtos..." oninput="desenharPlanilha()">
+                </div>
+                <div class="tabela-rolagem">
+                    <table class="tabela-est">
+                        <thead><tr><th>Produto</th><th>Categoria</th><th class="num">Custo</th><th class="num">Venda</th><th class="num">Margem</th><th class="num">Qtd.</th><th>Próx. validade</th><th>Situação</th></tr></thead>
+                        <tbody id="tabela-estoque"><tr><td colspan="8" class="vazio">Carregando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Cadastro rápido de fornecedor -->
+    <div id="modal-fornecedor" class="modal" role="dialog" aria-modal="true" aria-labelledby="forn-titulo">
+        <form class="modal-content" style="max-width: 460px;" onsubmit="salvarFornecedor(event)" novalidate>
+            <span class="close-btn" onclick="fecharNovoFornecedor()">&times;</span>
+            <h2 id="forn-titulo" style="font-size: 20px; margin-bottom: 16px;">Novo fornecedor</h2>
+            <label for="forn-nome" class="rotulo-campo">Nome / razão social *</label>
+            <input type="text" id="forn-nome" class="input-field" maxlength="120" placeholder="Ex.: Distribuidora Pet Sul" style="margin: 0 0 12px;">
+            <label for="forn-cnpj" class="rotulo-campo">CNPJ (opcional)</label>
+            <input type="text" id="forn-cnpj" class="input-field" maxlength="18" inputmode="numeric" placeholder="00.000.000/0000-00" style="margin: 0 0 12px;" oninput="mascararCnpj(this)">
+            <div class="form-grade" style="grid-template-columns: 1fr 1fr;">
+                <div><label for="forn-telefone">Telefone (opcional)</label><input type="tel" id="forn-telefone" class="input-field" maxlength="20" placeholder="(11) 3333-4444"></div>
+                <div><label for="forn-email">E-mail (opcional)</label><input type="email" id="forn-email" class="input-field" maxlength="120" placeholder="vendas@..."></div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="fecharNovoFornecedor()">Cancelar</button>
+                <button type="submit" class="btn-primary" id="btn-salvar-fornecedor">Cadastrar fornecedor</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+
+    <!-- Plugin VLibras (acessibilidade em Libras) -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+    <script src="busca.js"></script>
+    <script>
+        const API_URL = "http://localhost:5288/api";
+
+        // Escapa textos vindos da API antes de inseri-los no HTML (evita injeção de código)
+        function esc(texto) {
+            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        let usuarioLogado = null;
+        try { usuarioLogado = JSON.parse(localStorage.getItem("usuario")); } catch (e) {}
+
+        const CATEGORIAS = ["Alimento", "Medicamento", "Acessório", "Higiene", "Outro"];
+        const FORMAS = ["Dinheiro", "Cartão de crédito", "Cartão de débito", "Pix"];
+        const MARGEM_PADRAO = 45;
+        const moeda = v => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        const dataBR = v => v ? new Date(v).toLocaleDateString("pt-BR") : "—";
+
+        let produtos = [];
+        let tutores = [];
+        let carrinho = [];
+        let clienteEscolhido = null;
+        let formaEscolhida = null;
+        let produtoEntrada = null;     // produto existente escolhido na entrada
+        let modoEntrada = "existente"; // "existente" ou "novo" (cadastro junto com a entrada)
+        let fornecedores = [];         // fornecedores que já entregaram mercadoria
+        let fornecedorEscolhido = null; // { nome, novo }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (!usuarioLogado) {
+                window.location.href = "index.html";
+                return;
+            }
+            if (usuarioLogado.perfil !== "Atendente" && usuarioLogado.perfil !== "Gerente") {
+                window.location.href = "dashboard.html";
+                return;
+            }
+            document.querySelectorAll('.menu-staff').forEach(el => el.style.display = 'block');
+            if (usuarioLogado.perfil === "Gerente") {
+                document.querySelectorAll('.menu-vet').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.menu-gerente').forEach(el => el.style.display = 'block');
+            }
+            const prefixo = usuarioLogado.perfil === "Gerente" ? "Gerente: " : "Atendente: ";
+            document.getElementById("nome-usuario").innerText = prefixo + (usuarioLogado.nome || "Usuário").split(" ")[0];
+            const hoje = new Date();
+            document.getElementById("ent-validade").min = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-${String(hoje.getDate()).padStart(2, "0")}`;
+
+            // Permite abrir direto numa aba: estoque.html?aba=entrada
+            const aba = new URLSearchParams(location.search).get("aba");
+            if (["venda", "entrada", "planilha"].includes(aba)) trocarAba(aba);
+
+            montarBuscas();
+            desenharCarrinho();
+            carregarProdutos();
+            carregarTutores();
+            carregarEntradas();
+            carregarFornecedores();
+        });
+
+        function sair() {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+
+        // ===== API e avisos =====
+        async function api(caminho, opcoes = {}) {
+            const res = await fetch(`${API_URL}${caminho}`, {
+                ...opcoes,
+                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}`, "Content-Type": "application/json" }
+            });
+            if (res.status === 401) throw new Error("Sua sessão expirou. Faça login novamente.");
+            if (res.status === 403) throw new Error("Seu perfil não tem permissão para esta ação.");
+            if (!res.ok) {
+                let msg = `Erro ${res.status}`;
+                try { const j = await res.json(); msg = j.Erro || j.erro || j.Mensagem || j.mensagem || j.title || msg; } catch (e) {}
+                throw new Error(msg);
+            }
+            const texto = await res.text();
+            return texto ? JSON.parse(texto) : null;
+        }
+
+        function aviso(texto, tipo = "", duracao = 4000) {
+            const t = document.createElement("div");
+            t.className = "toast " + tipo;
+            t.textContent = texto;
+            document.getElementById("toasts").appendChild(t);
+            setTimeout(() => t.remove(), duracao);
+        }
+
+        function trocarAba(aba) {
+            document.querySelectorAll(".aba").forEach(b => b.classList.toggle("ativa", b.dataset.aba === aba));
+            ["venda", "entrada", "planilha"].forEach(s => document.getElementById(`sec-${s}`).hidden = s !== aba);
+        }
+
+        // ===== Carregamento =====
+        async function carregarProdutos() {
+            try {
+                produtos = await api("/estoque/produtos");
+                document.getElementById("c-produtos").textContent = produtos.length;
+                desenharAlertas();
+                desenharPlanilha();
+            } catch (e) { aviso(e.message === "Failed to fetch" ? "Não foi possível conectar à API." : e.message, "erro"); }
+        }
+
+        async function carregarTutores() {
+            try { tutores = await api("/tutores"); } catch (e) { tutores = []; }
+        }
+
+        async function carregarFornecedores() {
+            try { fornecedores = await api("/estoque/fornecedores"); } catch (e) { fornecedores = []; }
+        }
+
+        async function carregarEntradas() {
+            const corpo = document.getElementById("tabela-entradas");
+            try {
+                const entradas = await api("/estoque/entradas");
+                corpo.innerHTML = entradas.length ? entradas.map(e => `
+                    <tr>
+                        <td>${new Date(e.dataEntrada).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</td>
+                        <td><strong>${esc(e.numeroNota)}</strong>${e.fornecedor ? `<br><span class="sub">${esc(e.fornecedor)}</span>` : ""}</td>
+                        <td>${esc(e.produto)}</td>
+                        <td class="num">${e.quantidade}</td>
+                        <td class="num">${moeda(e.custoUnitario)}</td>
+                        <td class="num">${moeda(e.precoVendaAplicado)}</td>
+                        <td>${dataBR(e.validade)}</td>
+                        <td>${esc(e.recebidoPor)}</td>
+                    </tr>`).join("") : `<tr><td colspan="8" class="vazio">Nenhuma entrada registrada ainda.</td></tr>`;
+            } catch (e) { corpo.innerHTML = `<tr><td colspan="8" class="vazio">${esc(e.message)}</td></tr>`; }
+        }
+
+        // ===== Situação do estoque =====
+        const diasAte = d => Math.ceil((new Date(d) - new Date(new Date().toDateString())) / 86400000);
+
+        function situacaoEstoque(p) {
+            if (p.quantidadeEstoque <= 0) return { classe: "critico", texto: "Sem estoque" };
+            if (p.quantidadeEstoque <= p.pontoReposicao) return { classe: "atencao", texto: "Repor" };
+            return { classe: "ok", texto: "OK" };
+        }
+
+        function desenharAlertas() {
+            const itens = [];
+            produtos.filter(p => p.quantidadeEstoque <= p.pontoReposicao).forEach(p =>
+                itens.push(`<div class="alerta-est critico"><span><strong>${esc(p.nome)}</strong> está com <strong>${p.quantidadeEstoque}</strong> ${p.quantidadeEstoque === 1 ? "unidade" : "unidades"} (avisar com ${p.pontoReposicao}). Hora de repor.</span></div>`));
+            produtos.filter(p => p.proximaValidade && diasAte(p.proximaValidade) <= 30).forEach(p => {
+                const dias = diasAte(p.proximaValidade);
+                itens.push(`<div class="alerta-est validade"><span><strong>${esc(p.nome)}</strong>: um lote vence ${dias === 0 ? "<strong>hoje</strong>" : `em <strong>${dias} ${dias === 1 ? "dia" : "dias"}</strong>`} (${dataBR(p.proximaValidade)}).</span></div>`);
+            });
+            document.getElementById("alertas").innerHTML = itens.length ? itens.join("") : `<div class="alerta-est tranquilo"><span>Estoque em dia: nenhum produto para repor ou perto de vencer.</span></div>`;
+        }
+
+        function desenharPlanilha() {
+            const termo = normalizar(document.getElementById("filtro-planilha").value);
+            const lista = produtos.filter(p => !termo || normalizar(p.nome).includes(termo) || normalizar(CATEGORIAS[p.categoria]).includes(termo));
+            const corpo = document.getElementById("tabela-estoque");
+            if (!lista.length) { corpo.innerHTML = `<tr><td colspan="8" class="vazio">Nenhum produto encontrado.</td></tr>`; return; }
+            corpo.innerHTML = lista.map(p => {
+                const st = situacaoEstoque(p);
+                const margem = p.precoCusto > 0 && p.precoVenda > 0 ? ((p.precoVenda - p.precoCusto) / p.precoVenda * 100) : null;
+                let validade = "—";
+                if (p.proximaValidade) {
+                    const dias = diasAte(p.proximaValidade);
+                    validade = `${dataBR(p.proximaValidade)}${dias <= 30 ? ` <span class="selo-est atencao">${dias} d</span>` : ""}`;
+                }
+                return `<tr>
+                    <td><strong>${esc(p.nome)}</strong>${p.marca ? `<br><span class="sub">${esc(p.marca)}</span>` : ""}</td>
+                    <td>${CATEGORIAS[p.categoria] ?? "—"}</td>
+                    <td class="num">${p.precoCusto > 0 ? moeda(p.precoCusto) : "—"}</td>
+                    <td class="num">${moeda(p.precoVenda)}</td>
+                    <td class="num">${margem === null ? "—" : margem.toFixed(1).replace(".", ",") + "%"}</td>
+                    <td class="num"><strong>${p.quantidadeEstoque}</strong></td>
+                    <td>${validade}</td>
+                    <td><span class="selo-est ${st.classe}">${st.texto}</span></td>
+                </tr>`;
+            }).join("");
+        }
+
+        // ===== Busca com sugestões (cliente, produto da venda e produto da entrada) — ver busca.js =====
+        function buscarProdutos(termo) {
+            const t = normalizar(termo);
+            return produtos.filter(p => !t || normalizar(p.nome).includes(t) || normalizar(p.marca).includes(t));
+        }
+
+        function montarBuscas() {
+            // Cliente: por nome, CPF ou telefone
+            criarBusca({
+                input: "busca-cliente", lista: "lista-cliente",
+                buscar: termo => {
+                    if (!termo) return tutores;
+                    const t = normalizar(termo), digitos = termo.replace(/\D/g, "");
+                    return tutores.filter(c => normalizar(c.nome).includes(t) || normalizar(c.email).includes(t) ||
+                        (digitos.length >= 3 && ((c.cpf || "").includes(digitos) || (c.telefone || "").replace(/\D/g, "").includes(digitos))));
+                },
+                desenhar: (c, termo) => `<div class="sug-linha"><span class="sug-avatar">${esc((c.nome || "?").charAt(0).toUpperCase())}</span>
+                    <div><strong>${realcar(c.nome, termo)}</strong><span class="sub">${esc(telefoneValido(c.telefone) ? c.telefone : "sem telefone")} · ${esc(c.email)}</span></div></div>`,
+                escolher: c => {
+                    clienteEscolhido = c;
+                    const chip = document.getElementById("cliente-escolhido");
+                    chip.innerHTML = `<span class="sug-avatar">${esc(c.nome.charAt(0).toUpperCase())}</span><div><strong>${esc(c.nome)}</strong><span class="sub">${esc(telefoneValido(c.telefone) ? c.telefone : "sem telefone")}</span></div>
+                        <button type="button" class="btn-texto" onclick="trocarCliente()" aria-label="Trocar cliente">Trocar</button>`;
+                    chip.hidden = false;
+                    document.getElementById("dica-avulso").hidden = true;
+                    document.getElementById("busca-cliente-caixa").hidden = true;
+                    document.getElementById("busca-cliente").value = "";
+                    document.getElementById("busca-produto").focus();
+                }
+            });
+
+            // Produto da venda: adiciona ao carrinho
+            criarBusca({
+                input: "busca-produto", lista: "lista-produto",
+                buscar: buscarProdutos,
+                desenhar: (p, termo) => `<div class="sug-linha"><div style="flex:1;"><strong>${realcar(p.nome, termo)}</strong>
+                    <span class="sub">${CATEGORIAS[p.categoria] ?? ""}${p.marca ? " · " + esc(p.marca) : ""}</span></div>
+                    <div class="sug-dir"><strong>${moeda(p.precoVenda)}</strong><span class="sub ${p.quantidadeEstoque <= 0 ? "sem" : ""}">${p.quantidadeEstoque <= 0 ? "sem estoque" : p.quantidadeEstoque + " em estoque"}</span></div></div>`,
+                escolher: p => {
+                    adicionarAoCarrinho(p);
+                    document.getElementById("busca-produto").value = "";
+                }
+            });
+
+            // Produto da entrada: existente ou novo
+            criarBusca({
+                input: "busca-entrada", lista: "lista-entrada",
+                buscar: buscarProdutos,
+                desenhar: (p, termo) => p.extra
+                    ? `<div class="sug-linha"><span class="sug-avatar novo">+</span><div><strong>Cadastrar “${esc(p.nome)}” como novo produto</strong><span class="sub">Ainda não está no catálogo</span></div></div>`
+                    : `<div class="sug-linha"><div style="flex:1;"><strong>${realcar(p.nome, termo)}</strong><span class="sub">${CATEGORIAS[p.categoria] ?? ""} · ${p.quantidadeEstoque} em estoque</span></div>
+                       <div class="sug-dir"><span class="sub">venda atual</span><strong>${moeda(p.precoVenda)}</strong></div></div>`,
+                extra: (termo, encontrados) => termo.length >= 2 && !encontrados.some(p => normalizar(p.nome) === normalizar(termo))
+                    ? { extra: true, nome: termo } : null,
+                escolher: p => p.extra ? escolherProdutoNovo(p.nome) : escolherProdutoEntrada(p)
+            });
+
+            // Fornecedor da entrada: um cadastrado ou um novo, cadastrado na hora pela janela
+            criarBusca({
+                input: "busca-fornecedor", lista: "lista-fornecedor",
+                // Poucas sugestões, para a opção de cadastrar ficar sempre à vista
+                buscar: termo => { const t = normalizar(termo); return fornecedores.filter(f => !t || normalizar(f.nome).includes(t)).slice(0, 5); },
+                desenhar: (f, termo) => f.extra
+                    ? `<div class="sug-linha"><span class="sug-avatar novo">+</span><div><strong>Cadastrar “${esc(f.nome)}”</strong><span class="sub">Novo fornecedor</span></div></div>`
+                    : `<div class="sug-linha"><span class="sug-avatar">${esc(f.nome.charAt(0).toUpperCase())}</span><div><strong>${realcar(f.nome, termo)}</strong>
+                       <span class="sub">${f.entregas ? `${f.entregas} ${f.entregas === 1 ? "entrega" : "entregas"} · última em ${dataBR(f.ultimaEntrega)}` : "nenhuma entrega ainda"}</span></div></div>`,
+                extra: termo => termo.length >= 2 && !fornecedores.some(f => normalizar(f.nome) === normalizar(termo))
+                    ? { extra: true, nome: termo } : null,
+                escolher: f => f.extra ? abrirNovoFornecedor(f.nome) : escolherFornecedor(f.nome)
+            });
+        }
+
+        // ===== Fornecedor =====
+        function abrirNovoFornecedor(nome = "") {
+            const form = document.querySelector("#modal-fornecedor form");
+            form.reset();
+            document.getElementById("forn-nome").value = nome || document.getElementById("busca-fornecedor").value.trim();
+            document.getElementById("modal-fornecedor").style.display = "flex";
+            document.getElementById("forn-nome").focus();
+        }
+
+        function fecharNovoFornecedor() {
+            document.getElementById("modal-fornecedor").style.display = "none";
+        }
+
+        function mascararCnpj(campo) {
+            const d = campo.value.replace(/\D/g, "").slice(0, 14);
+            campo.value = d.replace(/^(\d{2})(\d)/, "$1.$2").replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+                .replace(/\.(\d{3})(\d)/, ".$1/$2").replace(/(\d{4})(\d)/, "$1-$2");
+        }
+
+        async function salvarFornecedor(event) {
+            event.preventDefault();
+            const nome = document.getElementById("forn-nome").value.trim();
+            if (nome.length < 2) return aviso("Informe o nome do fornecedor.", "erro");
+            const botao = document.getElementById("btn-salvar-fornecedor");
+            botao.disabled = true;
+            try {
+                const novo = await api("/estoque/fornecedores", { method: "POST", body: JSON.stringify({
+                    nome,
+                    cnpj: document.getElementById("forn-cnpj").value,
+                    telefone: document.getElementById("forn-telefone").value,
+                    email: document.getElementById("forn-email").value
+                }) });
+                fornecedores.push(novo);
+                escolherFornecedor(novo.nome, "Cadastrado agora");
+                fecharNovoFornecedor();
+                aviso(`Fornecedor "${novo.nome}" cadastrado.`, "ok");
+            } catch (e) { aviso(e.message, "erro"); }
+            finally { botao.disabled = false; }
+        }
+
+        function escolherFornecedor(nome, legenda) {
+            const existente = fornecedores.find(f => normalizar(f.nome) === normalizar(nome));
+            fornecedorEscolhido = { nome: existente?.nome ?? nome.trim() };
+            const sub = legenda || (existente?.cnpj ? `CNPJ ${existente.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, "$1.$2.$3/$4-$5")}` : "Fornecedor cadastrado");
+            const chip = document.getElementById("fornecedor-escolhido");
+            chip.innerHTML = `<span class="sug-avatar">${esc(fornecedorEscolhido.nome.charAt(0).toUpperCase())}</span>
+                <div><strong>${esc(fornecedorEscolhido.nome)}</strong><span class="sub">${esc(sub)}</span></div>
+                <button type="button" class="btn-texto" onclick="trocarFornecedor(true)">Trocar</button>`;
+            chip.hidden = false;
+            document.getElementById("busca-fornecedor-caixa").hidden = true;
+            document.getElementById("busca-fornecedor").value = "";
+        }
+
+        function trocarFornecedor(focar) {
+            fornecedorEscolhido = null;
+            document.getElementById("fornecedor-escolhido").hidden = true;
+            document.getElementById("busca-fornecedor-caixa").hidden = false;
+            if (focar) document.getElementById("busca-fornecedor").focus();
+        }
+
+        const telefoneValido = t => { const d = String(t || "").replace(/\D/g, ""); return d.length >= 10 && /[1-9]/.test(d); };
+
+        function trocarCliente() {
+            clienteEscolhido = null;
+            document.getElementById("cliente-escolhido").hidden = true;
+            document.getElementById("dica-avulso").hidden = false;
+            document.getElementById("busca-cliente-caixa").hidden = false;
+            document.getElementById("busca-cliente").focus();
+        }
+
+        // ===== Carrinho =====
+        function adicionarAoCarrinho(p) {
+            if (p.quantidadeEstoque <= 0) return aviso(`${p.nome} está sem estoque.`, "erro");
+            const item = carrinho.find(i => i.idProduto === p.id);
+            if (item) {
+                if (item.quantidade + 1 > p.quantidadeEstoque) return aviso(`Só há ${p.quantidadeEstoque} unidades de ${p.nome}.`, "erro");
+                item.quantidade++;
+            } else {
+                carrinho.push({ idProduto: p.id, nome: p.nome, preco: p.precoVenda, quantidade: 1, estoque: p.quantidadeEstoque });
+            }
+            desenharCarrinho();
+        }
+
+        function alterarQuantidade(id, delta) {
+            const item = carrinho.find(i => i.idProduto === id);
+            if (!item) return;
+            const nova = item.quantidade + delta;
+            if (nova > item.estoque) return aviso(`Só há ${item.estoque} unidades de ${item.nome}.`, "erro");
+            if (nova <= 0) carrinho = carrinho.filter(i => i.idProduto !== id);
+            else item.quantidade = nova;
+            desenharCarrinho();
+        }
+
+        const totalCarrinho = () => carrinho.reduce((s, i) => s + i.preco * i.quantidade, 0);
+
+        function desenharCarrinho() {
+            const lista = document.getElementById("carrinho-lista");
+            lista.innerHTML = carrinho.length ? carrinho.map(i => `
+                <li class="carrinho-item">
+                    <div style="min-width:0; flex:1;"><strong>${esc(i.nome)}</strong><span class="sub">${moeda(i.preco)} cada</span></div>
+                    <div class="passo" role="group" aria-label="Quantidade de ${esc(i.nome)}">
+                        <button type="button" onclick="alterarQuantidade(${i.idProduto}, -1)" aria-label="Diminuir">−</button>
+                        <span>${i.quantidade}</span>
+                        <button type="button" onclick="alterarQuantidade(${i.idProduto}, 1)" aria-label="Aumentar">+</button>
+                    </div>
+                    <strong class="carrinho-sub">${moeda(i.preco * i.quantidade)}</strong>
+                </li>`).join("") : `<li class="carrinho-vazio">O carrinho está vazio.<br>Busque um produto ao lado para adicionar.</li>`;
+            document.getElementById("venda-total").textContent = moeda(totalCarrinho());
+            montarAtalhosDinheiro();
+            atualizarTroco();
+        }
+
+        // ===== Pagamento e troco =====
+        function escolherForma(forma) {
+            formaEscolhida = forma;
+            document.querySelectorAll(".pg-forma").forEach(b => b.setAttribute("aria-checked", String(Number(b.dataset.forma) === forma)));
+            document.getElementById("caixa-troco").hidden = forma !== 0;
+            if (forma === 0) document.getElementById("valor-recebido").focus();
+            atualizarTroco();
+        }
+
+        // Atalhos com as notas mais prováveis para o total da venda
+        function montarAtalhosDinheiro() {
+            const total = totalCarrinho();
+            const caixa = document.getElementById("atalhos-dinheiro");
+            if (total <= 0) { caixa.innerHTML = ""; return; }
+            const opcoes = new Set([Math.ceil(total)]);
+            [10, 20, 50, 100, 200].forEach(n => { const v = Math.ceil(total / n) * n; if (v >= total) opcoes.add(v); });
+            caixa.innerHTML = [...opcoes].sort((a, b) => a - b).slice(0, 4).map(v =>
+                `<button type="button" class="btn-secondary" onclick="usarValorRecebido(${v})">${moeda(v)}</button>`).join("");
+        }
+
+        function usarValorRecebido(v) {
+            document.getElementById("valor-recebido").value = v.toFixed(2);
+            atualizarTroco();
+        }
+
+        function atualizarTroco() {
+            const saida = document.getElementById("valor-troco");
+            const recebido = parseFloat(document.getElementById("valor-recebido").value) || 0;
+            const total = totalCarrinho();
+            if (formaEscolhida !== 0 || !recebido || total <= 0) { saida.textContent = ""; return; }
+            if (recebido >= total) {
+                saida.innerHTML = `Troco: <span class="valor-troco">${moeda(recebido - total)}</span>`;
+                saida.style.color = "#047857";
+            } else {
+                saida.textContent = `Faltam ${moeda(total - recebido)}`;
+                saida.style.color = "#b91c1c";
+            }
+        }
+
+        async function finalizarVenda() {
+            const total = totalCarrinho();
+            if (!carrinho.length) return aviso("Adicione pelo menos um produto ao carrinho.", "erro");
+            if (formaEscolhida === null) return aviso("Escolha a forma de pagamento.", "erro");
+            const recebido = parseFloat(document.getElementById("valor-recebido").value) || 0;
+            if (formaEscolhida === 0 && recebido > 0 && recebido < total) return aviso(`O valor entregue é menor que o total (${moeda(total)}).`, "erro");
+
+            const botao = document.getElementById("btn-concluir");
+            botao.disabled = true;
+            try {
+                const venda = await api("/vendas", { method: "POST", body: JSON.stringify({
+                    idTutor: clienteEscolhido?.id ?? null,
+                    formaPagamento: formaEscolhida,
+                    itens: carrinho.map(i => ({ idProduto: i.idProduto, quantidade: i.quantidade }))
+                }) });
+                const troco = formaEscolhida === 0 && recebido >= total ? ` · Troco: ${moeda(recebido - total)}` : "";
+                aviso(`Venda de ${moeda(venda.total)} concluída (${FORMAS[formaEscolhida]})${troco}.`, "ok", 6000);
+                (venda.alertas || []).forEach(a => aviso(a.replace("ALERTA DE ESTOQUE: ", ""), "", 7000));
+
+                carrinho = [];
+                formaEscolhida = null;
+                document.querySelectorAll(".pg-forma").forEach(b => b.setAttribute("aria-checked", "false"));
+                document.getElementById("valor-recebido").value = "";
+                document.getElementById("caixa-troco").hidden = true;
+                if (clienteEscolhido) trocarCliente();
+                desenharCarrinho();
+                carregarProdutos();
+            } catch (e) { aviso(e.message, "erro"); }
+            finally { botao.disabled = false; }
+        }
+
+        // ===== Entrada de mercadoria =====
+        // Alterna entre escolher um produto do catálogo e cadastrar um novo
+        function modoProduto(modo, nome = "") {
+            modoEntrada = modo;
+            const novo = modo === "novo";
+            ["existente", "novo"].forEach(m => {
+                const b = document.getElementById(`modo-${m}`);
+                b.classList.toggle("ativo", m === modo);
+                b.setAttribute("aria-checked", String(m === modo));
+            });
+            document.getElementById("area-existente").hidden = novo;
+            document.getElementById("campos-novo").hidden = !novo;
+            if (novo) {
+                produtoEntrada = null;
+                const campo = document.getElementById("novo-nome");
+                if (nome) campo.value = nome;
+                campo.focus();
+            } else {
+                trocarProdutoEntrada();
+            }
+        }
+
+        function escolherProdutoEntrada(p) {
+            produtoEntrada = p;
+            mostrarProdutoEscolhido(`<span class="sug-avatar">${esc(p.nome.charAt(0).toUpperCase())}</span><div><strong>${esc(p.nome)}</strong>
+                <span class="sub">${p.quantidadeEstoque} em estoque · custo atual ${p.precoCusto > 0 ? moeda(p.precoCusto) : "não informado"} · venda atual ${moeda(p.precoVenda)}</span></div>`);
+            if (p.precoCusto > 0 && !document.getElementById("ent-custo").value) document.getElementById("ent-custo").value = p.precoCusto.toFixed(2);
+            if (p.ultimoFornecedor && !fornecedorEscolhido) escolherFornecedor(p.ultimoFornecedor, "Último fornecedor deste produto");
+            calcularPreco("custo");
+            document.getElementById("ent-nota").focus();
+        }
+
+        function escolherProdutoNovo(nome) {
+            modoProduto("novo", nome);
+        }
+
+        function mostrarProdutoEscolhido(html) {
+            const chip = document.getElementById("produto-escolhido");
+            chip.innerHTML = html + `<button type="button" class="btn-texto" onclick="trocarProdutoEntrada()">Trocar</button>`;
+            chip.hidden = false;
+            document.getElementById("busca-entrada-caixa").hidden = true;
+            document.getElementById("busca-entrada").value = "";
+        }
+
+        function trocarProdutoEntrada() {
+            produtoEntrada = null;
+            document.getElementById("produto-escolhido").hidden = true;
+            document.getElementById("busca-entrada-caixa").hidden = false;
+            document.getElementById("busca-entrada").focus();
+        }
+
+        // Margem sobre a venda (não é markup): preço = custo / (1 - margem)
+        function calcularPreco(origem) {
+            const custo = parseFloat(document.getElementById("ent-custo").value) || 0;
+            const campoMargem = document.getElementById("ent-margem");
+            const campoPreco = document.getElementById("ent-preco");
+            const qtd = parseInt(document.getElementById("ent-qtd").value) || 0;
+
+            if (origem === "custo" || origem === "margem") {
+                const margem = Math.min(parseFloat(campoMargem.value) || 0, 95) / 100;
+                campoPreco.value = custo > 0 ? (Math.round(custo / (1 - margem) * 100) / 100).toFixed(2) : "";
+            } else if (origem === "preco") {
+                const preco = parseFloat(campoPreco.value) || 0;
+                if (custo > 0 && preco > 0) campoMargem.value = ((preco - custo) / preco * 100).toFixed(1);
+            }
+
+            const preco = parseFloat(campoPreco.value) || 0;
+            const resumo = document.getElementById("resumo-preco");
+            if (!(custo > 0)) {
+                resumo.className = "resumo-preco";
+                resumo.innerHTML = "Informe o valor de compra para ver o preço sugerido com margem de 45%.";
+                return;
+            }
+            const lucro = preco - custo;
+            const margemReal = preco > 0 ? lucro / preco * 100 : 0;
+            const markup = lucro / custo * 100;
+            const sugerido = Math.round(custo / (1 - MARGEM_PADRAO / 100) * 100) / 100;
+            resumo.className = "resumo-preco " + (lucro < 0 ? "ruim" : "bom");
+            resumo.innerHTML = `
+                <div><span>Lucro por unidade</span><strong>${moeda(lucro)}</strong></div>
+                <div><span>Margem sobre a venda</span><strong>${margemReal.toFixed(1).replace(".", ",")}%</strong></div>
+                <div><span>Equivale a markup de</span><strong>${markup.toFixed(1).replace(".", ",")}%</strong></div>
+                <div><span>Total da nota (${qtd || 0} un.)</span><strong>${moeda(custo * qtd)}</strong></div>
+                <p class="explica">Sugestão com margem de 45%: <strong>${moeda(sugerido)}</strong>. A margem é calculada sobre o preço de venda (lucro ÷ preço), por isso o preço é custo ÷ 0,55, e não custo + 45%.</p>`;
+        }
+
+        function limparEntrada() {
+            document.getElementById("form-entrada").reset();
+            document.getElementById("ent-margem").value = MARGEM_PADRAO;
+            trocarFornecedor(false);
+            modoProduto("existente");
+            calcularPreco();
+        }
+
+        async function registrarEntrada(event) {
+            event.preventDefault();
+            const novo = modoEntrada === "novo";
+            const nomeNovo = document.getElementById("novo-nome").value.trim();
+            if (novo && nomeNovo.length < 2) return aviso("Informe o nome do produto novo.", "erro");
+            if (!novo && !produtoEntrada) return aviso("Escolha o produto recebido na lista, ou clique em \"Cadastrar produto novo\".", "erro");
+            const dados = {
+                idProduto: novo ? null : produtoEntrada.id,
+                novoProduto: novo ? {
+                    nome: nomeNovo,
+                    categoria: parseInt(document.getElementById("novo-categoria").value),
+                    marca: document.getElementById("novo-marca").value,
+                    pontoReposicao: parseInt(document.getElementById("novo-ponto").value) || 0
+                } : null,
+                numeroNota: document.getElementById("ent-nota").value,
+                fornecedor: fornecedorEscolhido?.nome ?? document.getElementById("busca-fornecedor").value.trim(),
+                validade: document.getElementById("ent-validade").value || null,
+                quantidade: parseInt(document.getElementById("ent-qtd").value) || 0,
+                custoUnitario: parseFloat(document.getElementById("ent-custo").value) || 0,
+                precoVenda: parseFloat(document.getElementById("ent-preco").value) || 0
+            };
+            if (!dados.numeroNota.trim()) return aviso("Informe o número da nota fiscal.", "erro");
+            if (dados.quantidade <= 0) return aviso("Informe a quantidade recebida.", "erro");
+            if (dados.custoUnitario <= 0) return aviso("Informe o valor de compra.", "erro");
+            if (dados.precoVenda < dados.custoUnitario) return aviso("O preço de venda está abaixo do custo.", "erro");
+
+            const botao = document.getElementById("btn-salvar-entrada");
+            botao.disabled = true;
+            try {
+                const r = await api("/estoque/entradas", { method: "POST", body: JSON.stringify(dados) });
+                const nome = novo ? nomeNovo : produtoEntrada.nome;
+                aviso(novo ? `Produto "${nome}" cadastrado com ${dados.quantidade} un. em estoque.` : `Entrada salva: ${dados.quantidade} un. de ${nome}. Estoque agora: ${r.saldoAtual}.`, "ok", 6000);
+                limparEntrada();
+                await carregarProdutos();
+                carregarEntradas();
+                carregarFornecedores();
+            } catch (e) { aviso(e.message, "erro"); }
+            finally { botao.disabled = false; }
+        }
+    </script>
+    <script src="ui.js"></script>
+</body>
+</html>

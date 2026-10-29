@@ -1,0 +1,9 @@
+{
+  "_instrucoes": "Preencha os campos abaixo e rode: python Documentacao/gerar_relatorio.py  (para trabalho em grupo, acrescente um item por integrante em 'alunos')",
+  "alunos": [
+    { "nome": "NOME DO ALUNO", "ra": "RA" }
+  ],
+  "orientador": "NOME DO(A) ORIENTADOR(A)",
+  "cidade": "CIDADE",
+  "ano": "2026"
+}

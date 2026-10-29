@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ordens de Serviço - PataFácil</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="portal-body has-sidebar">
+    <!-- Menu Lateral -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">PataFácil</div>
+
+        <div class="sidebar-title">Menu Principal</div>
+        <ul class="sidebar-menu">
+            <li class="menu-agenda" style="display:none;"><a href="atendente.html">Agenda do Balcão</a></li>
+            <li class="menu-staff" style="display:none;"><a href="dashboard.html">Visão Geral</a></li>
+            <li><a href="ordens.html" class="active">Ordens de Serviço</a></li>
+            <li><a href="emails.html">Caixa de E-mail</a></li>
+            <li class="menu-vet" style="display:none;"><a href="veterinario.html">Painel Veterinário</a></li>
+            <li class="menu-gerente" style="display:none;"><a href="gerente.html">Gestão e Relatórios</a></li>
+            <li class="menu-staff" style="display:none;"><a href="estoque.html">Estoque e Vendas</a></li>
+        </ul>
+
+        <div class="sidebar-title" style="margin-top: 30px;">Sistema</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" onclick="sair()" style="color: #e74c3c;">Sair</a></li>
+        </ul>
+    </aside>
+
+    <nav class="navbar">
+        <div class="nav-logo">Ordens de Serviço</div>
+        <div class="nav-user">
+            <span id="nome-usuario">Carregando...</span>
+            <a href="#" class="logout-btn" onclick="sair()">Sair</a>
+        </div>
+    </nav>
+
+    <main class="dashboard-container agenda-wrap">
+        <div class="agenda-topo">
+            <div>
+                <h2>Ordens de Serviço</h2>
+                <p class="agenda-sub" id="periodo-label">Carregando...</p>
+            </div>
+            <div class="agenda-nav">
+                <div class="seletor-modo" role="group" aria-label="Período">
+                    <button type="button" data-modo="dia" onclick="trocarModo('dia')">Dia</button>
+                    <button type="button" data-modo="semana" class="ativo" onclick="trocarModo('semana')">Semana</button>
+                    <button type="button" data-modo="mes" onclick="trocarModo('mes')">Mês</button>
+                </div>
+                <button type="button" class="btn-icone" onclick="mover(-1)" aria-label="Período anterior" title="Anterior">‹</button>
+                <button type="button" class="btn-secondary" onclick="irParaHoje()">Hoje</button>
+                <button type="button" class="btn-icone" onclick="mover(1)" aria-label="Próximo período" title="Próximo">›</button>
+                <input type="date" id="data-ref" class="input-data" aria-label="Escolher data" onchange="escolherData(this.value)">
+            </div>
+        </div>
+
+        <div class="os-filtros">
+            <input type="search" id="filtro" class="input-field" placeholder="Buscar por nº da OS, cliente, pet ou serviço..." oninput="desenhar()">
+            <div class="mail-filtros" role="group" aria-label="Situação" id="filtro-situacao">
+                <button type="button" data-f="todas" class="ativo" onclick="filtrarSituacao('todas')">Todas</button>
+                <button type="button" data-f="abertas" onclick="filtrarSituacao('abertas')">Abertas</button>
+                <button type="button" data-f="processo" onclick="filtrarSituacao('processo')">Em processo</button>
+                <button type="button" data-f="finalizado" onclick="filtrarSituacao('finalizado')">Finalizadas</button>
+                <button type="button" data-f="cancelado" onclick="filtrarSituacao('cancelado')">Canceladas</button>
+            </div>
+        </div>
+
+        <div class="est-painel" style="padding: 0;">
+            <div class="tabela-rolagem" style="border: 0;">
+                <table class="tabela-est tabela-os">
+                    <thead><tr><th>Nº OS</th><th>Data</th><th>Cliente</th><th>Pet</th><th>Serviço</th><th>Profissional</th><th>Situação</th><th class="num">Valor</th><th></th></tr></thead>
+                    <tbody id="tabela-os"><tr><td colspan="9" class="vazio">Carregando...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        <p class="pg-dica" style="margin-top: 10px;">A ordem de serviço é gerada automaticamente para cada agendamento, com o número do atendimento.</p>
+    </main>
+
+    <!-- Visualização da OS com escolha do formato -->
+    <div id="modal-os" class="modal" role="dialog" aria-modal="true" aria-labelledby="os-titulo">
+        <div class="modal-content os-modal">
+            <span class="close-btn" onclick="fecharOS()">&times;</span>
+            <h2 id="os-titulo" class="os-modal-titulo">Ordem de Serviço</h2>
+
+            <div class="os-barra">
+                <div class="seletor-modo" role="radiogroup" aria-label="Formato">
+                    <button type="button" data-formato="a4" class="ativo" role="radio" aria-checked="true" onclick="trocarFormato('a4')">A4 / PDF</button>
+                    <button type="button" data-formato="t80" role="radio" aria-checked="false" onclick="trocarFormato('t80')">Térmica 80 mm</button>
+                    <button type="button" data-formato="t58" role="radio" aria-checked="false" onclick="trocarFormato('t58')">Térmica 58 mm</button>
+                </div>
+                <div class="os-acoes">
+                    <a class="btn-secondary" id="os-whatsapp" href="#" target="_blank" rel="noopener">WhatsApp</a>
+                    <button type="button" class="btn-secondary" id="os-pdf" onclick="baixarPDF()">Baixar PDF</button>
+                    <button type="button" class="btn-primary" onclick="imprimir()">Imprimir</button>
+                </div>
+            </div>
+
+            <div class="os-previa"><div id="os-documento"></div></div>
+        </div>
+    </div>
+
+    <!-- Cópia usada só na impressão -->
+    <div id="impressao" aria-hidden="true"></div>
+    <style id="estilo-pagina"></style>
+
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+
+    <!-- Plugin VLibras (acessibilidade em Libras) -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+    <!-- Geração do arquivo PDF no próprio navegador -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        const API_URL = "http://localhost:5288/api";
+
+        // Escapa textos vindos da API antes de inseri-los no HTML (evita injeção de código)
+        function esc(texto) {
+            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        let usuarioLogado = null;
+        try { usuarioLogado = JSON.parse(localStorage.getItem("usuario")); } catch (e) {}
+
+        const ESPECIES = ["Cachorro", "Gato", "Ave", "Roedor", "Outro"];
+        const FORMAS = ["Dinheiro", "Cartão de crédito", "Cartão de débito", "Pix"];
+        const ROTULOS = { pendente: "Aberta (pendente)", confirmado: "Aberta (confirmada)", processo: "Em processo", finalizado: "Finalizada", cancelado: "Cancelada" };
+        const moeda = v => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        const dataHora = v => new Date(v).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+        const hora = v => new Date(v).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const numeroOS = a => String(a.id).padStart(6, "0");
+
+        let modo = "semana";
+        let dataRef = new Date();
+        let filtroSituacao = "todas";
+        let ordens = [];
+        let osAberta = null;
+        let formato = "a4";
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (!usuarioLogado) {
+                window.location.href = "index.html";
+                return;
+            }
+            const perfil = usuarioLogado.perfil;
+            if (!["Atendente", "Gerente", "Tosador", "Veterinario"].includes(perfil)) {
+                window.location.href = "portal.html";
+                return;
+            }
+            const mostrar = seletor => document.querySelectorAll(seletor).forEach(el => el.style.display = "block");
+            if (["Atendente", "Gerente", "Tosador"].includes(perfil)) mostrar(".menu-agenda");
+            if (["Atendente", "Gerente"].includes(perfil)) mostrar(".menu-staff");
+            if (["Veterinario", "Gerente"].includes(perfil)) mostrar(".menu-vet");
+            if (perfil === "Gerente") mostrar(".menu-gerente");
+
+            const prefixo = { Gerente: "Gerente: ", Atendente: "Atendente: ", Tosador: "Banho e Tosa: ", Veterinario: "Dr(a). " }[perfil];
+            document.getElementById("nome-usuario").innerText = prefixo + (usuarioLogado.nome || "Usuário").split(" ")[0];
+
+            // Aberta pela agenda do balcão: ordens.html?id=12&data=2026-10-28
+            const params = new URLSearchParams(location.search);
+            if (params.get("data")) {
+                const [a, m, d] = params.get("data").split("-").map(Number);
+                if (a && m && d) dataRef = new Date(a, m - 1, d);
+            }
+            if (["a4", "t80", "t58"].includes(params.get("formato"))) formato = params.get("formato");
+            carregar().then(() => {
+                const id = Number(params.get("id"));
+                if (id) abrirOS(id);
+            });
+
+            document.addEventListener("keydown", e => { if (e.key === "Escape") fecharOS(); });
+        });
+
+        function sair() {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+
+        async function api(caminho) {
+            const res = await fetch(`${API_URL}${caminho}`, { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } });
+            if (res.status === 401) throw new Error("Sua sessão expirou. Faça login novamente.");
+            if (res.status === 403) throw new Error("Seu perfil não tem permissão para esta ação.");
+            if (!res.ok) {
+                let msg = `Erro ${res.status}`;
+                try { const j = await res.json(); msg = j.Erro || j.erro || msg; } catch (e) {}
+                throw new Error(msg);
+            }
+            return res.json();
+        }
+
+        function aviso(texto, tipo = "", duracao = 4000) {
+            const t = document.createElement("div");
+            t.className = "toast " + tipo;
+            t.textContent = texto;
+            document.getElementById("toasts").appendChild(t);
+            setTimeout(() => t.remove(), duracao);
+        }
+
+        // ===== Período =====
+        const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+        function periodoAtual() {
+            const base = new Date(dataRef.getFullYear(), dataRef.getMonth(), dataRef.getDate());
+            if (modo === "dia") return { inicio: base, fim: base };
+            if (modo === "mes") return { inicio: new Date(base.getFullYear(), base.getMonth(), 1), fim: new Date(base.getFullYear(), base.getMonth() + 1, 0) };
+            const inicio = new Date(base); inicio.setDate(base.getDate() - ((base.getDay() + 6) % 7));
+            const fim = new Date(inicio); fim.setDate(inicio.getDate() + 6);
+            return { inicio, fim };
+        }
+
+        function rotuloPeriodo({ inicio, fim }) {
+            if (modo === "dia") return inicio.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
+            if (modo === "mes") { const t = inicio.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }); return t.charAt(0).toUpperCase() + t.slice(1); }
+            return `${inicio.toLocaleDateString("pt-BR")} a ${fim.toLocaleDateString("pt-BR")}`;
+        }
+
+        function trocarModo(novo) {
+            modo = novo;
+            document.querySelectorAll(".agenda-nav .seletor-modo button").forEach(b => b.classList.toggle("ativo", b.dataset.modo === novo));
+            carregar();
+        }
+
+        function mover(passo) {
+            if (modo === "dia") dataRef.setDate(dataRef.getDate() + passo);
+            else if (modo === "semana") dataRef.setDate(dataRef.getDate() + 7 * passo);
+            else dataRef = new Date(dataRef.getFullYear(), dataRef.getMonth() + passo, 1);
+            carregar();
+        }
+
+        function irParaHoje() { dataRef = new Date(); carregar(); }
+
+        function escolherData(valor) {
+            if (!valor) return;
+            const [a, m, d] = valor.split("-").map(Number);
+            dataRef = new Date(a, m - 1, d);
+            carregar();
+        }
+
+        async function carregar() {
+            const periodo = periodoAtual();
+            document.getElementById("periodo-label").textContent = rotuloPeriodo(periodo);
+            document.getElementById("data-ref").value = iso(dataRef);
+            try {
+                ordens = await api(`/agendamento/periodo?inicio=${iso(periodo.inicio)}&fim=${iso(periodo.fim)}`);
+                desenhar();
+            } catch (e) {
+                document.getElementById("tabela-os").innerHTML = `<tr><td colspan="9" class="vazio">${esc(e.message === "Failed to fetch" ? "Não foi possível conectar à API." : e.message)}</td></tr>`;
+            }
+        }
+
+        // ===== Lista =====
+        function situacao(a) {
+            if (a.status === 3) return "cancelado";
+            if (a.dataPagamento) return "finalizado";
+            if (a.dataChegada) return "processo";
+            if (a.status === 2) return "finalizado";
+            return a.status === 1 ? "confirmado" : "pendente";
+        }
+
+        function filtrarSituacao(f) {
+            filtroSituacao = f;
+            document.querySelectorAll("#filtro-situacao button").forEach(b => b.classList.toggle("ativo", b.dataset.f === f));
+            desenhar();
+        }
+
+        function desenhar() {
+            const termo = normalizar(document.getElementById("filtro").value.trim());
+            const lista = ordens.filter(a => {
+                const st = situacao(a);
+                if (filtroSituacao === "abertas" && st !== "pendente" && st !== "confirmado") return false;
+                if (!["todas", "abertas"].includes(filtroSituacao) && st !== filtroSituacao) return false;
+                if (!termo) return true;
+                return [numeroOS(a), a.nomeTutor, a.nomePet, a.nomeServico, a.nomeProfissional].some(t => normalizar(t).includes(termo));
+            }).sort((x, y) => new Date(y.dataHoraInicio) - new Date(x.dataHoraInicio));
+
+            const corpo = document.getElementById("tabela-os");
+            if (!lista.length) { corpo.innerHTML = `<tr><td colspan="9" class="vazio">Nenhuma ordem de serviço neste período.</td></tr>`; return; }
+            corpo.innerHTML = lista.map(a => {
+                const st = situacao(a);
+                return `<tr class="linha-os" onclick="abrirOS(${a.id})">
+                    <td><strong>${numeroOS(a)}</strong></td>
+                    <td>${dataHora(a.dataHoraInicio)}</td>
+                    <td>${esc(a.nomeTutor)}</td>
+                    <td>${esc(a.nomePet)}</td>
+                    <td>${esc(a.nomeServico)}</td>
+                    <td>${esc(a.nomeProfissional)}</td>
+                    <td><span class="badge-st st-${st}">${ROTULOS[st]}</span></td>
+                    <td class="num">${moeda(a.valorPago ?? a.preco)}</td>
+                    <td class="num"><button type="button" class="btn-mini" onclick="event.stopPropagation(); abrirOS(${a.id})">Abrir</button></td>
+                </tr>`;
+            }).join("");
+        }
+
+        function normalizar(texto) {
+            return String(texto ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+        }
+
+        // ===== Documento da OS =====
+        const cpfFormatado = c => { const d = String(c || "").replace(/\D/g, ""); return d.length === 11 ? d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4") : (c || "—"); };
+
+        // O que o cliente escreveu, sem a etiqueta interna da IA
+        const obsCliente = texto => String(texto || "").split("\n").filter(l => !l.startsWith("[IA]")).join("\n").trim();
+
+        function montarDocumento(a, fmt) {
+            const st = situacao(a);
+            const minutos = Math.round((new Date(a.dataHoraFim) - new Date(a.dataHoraInicio)) / 60000);
+            const pet = [ESPECIES[a.especiePet], a.racaPet, a.pesoPet ? `${String(a.pesoPet).replace(".", ",")} kg` : ""].filter(Boolean).join(" · ");
+            const cliente = obsCliente(a.observacoes);
+            const equipe = a.observacoesAtendimento || "";
+            const emitida = new Date().toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+            const pago = !!a.dataPagamento;
+
+            if (fmt === "a4") {
+                const linha = (rotulo, valor) => `<div><dt>${rotulo}</dt><dd>${valor || "—"}</dd></div>`;
+                return `<article class="os-doc os-a4">
+                    <header class="os-cab">
+                        <div><div class="os-marca">PataFácil</div><div class="os-sub">Pet Shop e Clínica Veterinária</div></div>
+                        <div class="os-num"><span>Ordem de Serviço</span><strong>Nº ${numeroOS(a)}</strong><small>Emitida em ${emitida}</small></div>
+                    </header>
+                    <div class="os-faixa"><span>Situação: <strong>${ROTULOS[st]}</strong></span><span>Agendado em ${dataHora(a.dataCriacao)}</span></div>
+                    <div class="os-colunas">
+                        <section><h4>Cliente</h4><dl>
+                            ${linha("Nome", esc(a.nomeTutor))}${linha("CPF", esc(cpfFormatado(a.cpfTutor)))}
+                            ${linha("Telefone", esc(a.telefoneTutor))}${linha("E-mail", esc(a.emailTutor))}
+                        </dl></section>
+                        <section><h4>Pet</h4><dl>
+                            ${linha("Nome", esc(a.nomePet))}${linha("Espécie", esc(ESPECIES[a.especiePet] || ""))}
+                            ${linha("Raça", esc(a.racaPet))}${linha("Peso", a.pesoPet ? `${String(a.pesoPet).replace(".", ",")} kg` : "")}
+                        </dl></section>
+                    </div>
+                    <section><h4>Serviço</h4>
+                        <table class="os-tabela"><thead><tr><th>Descrição</th><th>Profissional</th><th>Data e horário</th><th>Duração</th><th class="num">Valor</th></tr></thead>
+                        <tbody><tr><td>${esc(a.nomeServico)}</td><td>${esc(a.nomeProfissional)}</td><td>${new Date(a.dataHoraInicio).toLocaleDateString("pt-BR")} · ${hora(a.dataHoraInicio)} às ${hora(a.dataHoraFim)}</td><td>${minutos} min</td><td class="num">${moeda(a.preco)}</td></tr></tbody></table>
+                    </section>
+                    ${cliente || equipe ? `<section><h4>Observações</h4>
+                        ${cliente ? `<p><strong>Do cliente:</strong> ${esc(cliente)}</p>` : ""}
+                        ${equipe ? `<p><strong>Da equipe:</strong> ${esc(equipe)}</p>` : ""}</section>` : ""}
+                    <section class="os-totais">
+                        <div><span>Valor do serviço</span><strong>${moeda(a.preco)}</strong></div>
+                        ${a.dataChegada ? `<div><span>Chegada do cliente</span><strong>${dataHora(a.dataChegada)}</strong></div>` : ""}
+                        ${pago ? `<div><span>Pago em ${dataHora(a.dataPagamento)} (${FORMAS[a.formaPagamento] ?? "—"})</span><strong>${moeda(a.valorPago)}</strong></div>`
+                               : st === "cancelado" ? "" : `<div><span>Pagamento</span><strong>Pendente</strong></div>`}
+                    </section>
+                    <div class="os-assinaturas"><div>Responsável pelo atendimento</div><div>Cliente</div></div>
+                    <footer class="os-rodape">Documento de controle interno, sem valor fiscal.</footer>
+                </article>`;
+            }
+
+            // Cupom para impressora térmica (80 ou 58 mm)
+            const par = (rotulo, valor) => `<div class="par"><span>${rotulo}</span><span>${valor}</span></div>`;
+            return `<article class="os-doc os-termica ${fmt === "t58" ? "os-58" : "os-80"}">
+                <div class="centro"><strong class="grande">PATAFÁCIL</strong><br>Pet Shop e Clínica Veterinária</div>
+                <hr>
+                <div class="centro"><strong>ORDEM DE SERVIÇO</strong><br><strong class="grande">Nº ${numeroOS(a)}</strong><br>${emitida}</div>
+                <hr>
+                ${par("Situação", ROTULOS[st])}
+                <hr>
+                <strong>CLIENTE</strong>
+                <div>${esc(a.nomeTutor)}</div>
+                ${a.cpfTutor ? `<div>CPF ${esc(cpfFormatado(a.cpfTutor))}</div>` : ""}
+                ${a.telefoneTutor ? `<div>${esc(a.telefoneTutor)}</div>` : ""}
+                <hr>
+                <strong>PET</strong>
+                <div>${esc(a.nomePet)}</div>
+                ${pet ? `<div>${esc(pet)}</div>` : ""}
+                <hr>
+                <strong>SERVIÇO</strong>
+                <div>${esc(a.nomeServico)}</div>
+                ${par("Profissional", esc(a.nomeProfissional))}
+                ${par("Data", new Date(a.dataHoraInicio).toLocaleDateString("pt-BR"))}
+                ${par("Horário", `${hora(a.dataHoraInicio)}-${hora(a.dataHoraFim)}`)}
+                ${a.dataChegada ? par("Chegada", hora(a.dataChegada)) : ""}
+                ${cliente ? `<div class="obs">Obs.: ${esc(cliente)}</div>` : ""}
+                ${equipe ? `<div class="obs">Equipe: ${esc(equipe)}</div>` : ""}
+                <hr>
+                ${par("Valor", moeda(a.preco))}
+                ${pago ? par("Pago", moeda(a.valorPago)) + par("Forma", FORMAS[a.formaPagamento] ?? "—") : st === "cancelado" ? "" : par("Pagamento", "Pendente")}
+                <hr>
+                <div class="assinatura">Assinatura do cliente</div>
+                <div class="centro pequeno">Sem valor fiscal</div>
+            </article>`;
+        }
+
+        // ===== Visualização, impressão e PDF =====
+        function abrirOS(id) {
+            osAberta = ordens.find(a => a.id === id);
+            if (!osAberta) return aviso("Ordem de serviço não encontrada neste período.", "erro");
+            document.getElementById("os-titulo").textContent = `Ordem de Serviço Nº ${numeroOS(osAberta)}`;
+            const digitos = String(osAberta.telefoneTutor || "").replace(/\D/g, "");
+            const wpp = document.getElementById("os-whatsapp");
+            wpp.hidden = digitos.length < 10;
+            wpp.href = `https://wa.me/55${digitos}?text=${encodeURIComponent(textoWhatsApp(osAberta))}`;
+            trocarFormato(formato);
+            document.getElementById("modal-os").style.display = "flex";
+        }
+
+        function fecharOS() {
+            document.getElementById("modal-os").style.display = "none";
+            osAberta = null;
+        }
+
+        function trocarFormato(fmt) {
+            formato = fmt;
+            document.querySelectorAll(".os-barra [data-formato]").forEach(b => {
+                b.classList.toggle("ativo", b.dataset.formato === fmt);
+                b.setAttribute("aria-checked", String(b.dataset.formato === fmt));
+            });
+            if (osAberta) document.getElementById("os-documento").innerHTML = montarDocumento(osAberta, fmt);
+        }
+
+        function textoWhatsApp(a) {
+            const st = situacao(a);
+            return [
+                `*PataFácil - Ordem de Serviço Nº ${numeroOS(a)}*`,
+                `Pet: ${a.nomePet}`,
+                `Serviço: ${a.nomeServico}`,
+                `Data: ${new Date(a.dataHoraInicio).toLocaleDateString("pt-BR")} às ${hora(a.dataHoraInicio)}`,
+                `Profissional: ${a.nomeProfissional}`,
+                `Valor: ${moeda(a.valorPago ?? a.preco)}`,
+                `Situação: ${ROTULOS[st]}`
+            ].join("\n");
+        }
+
+        // Tamanho do papel: A4 com margem, ou bobina térmica com a altura exata do cupom
+        function tamanhoPapel() {
+            if (formato === "a4") return { largura: 210, altura: 297, margem: 14 };
+            const doc = document.querySelector("#os-documento .os-doc");
+            const largura = formato === "t58" ? 58 : 80;
+            const altura = Math.ceil(doc.offsetHeight * 25.4 / 96) + 8;
+            return { largura, altura, margem: formato === "t58" ? 3 : 4 };
+        }
+
+        function imprimir() {
+            if (!osAberta) return;
+            const papel = tamanhoPapel();
+            document.getElementById("estilo-pagina").textContent = formato === "a4"
+                ? `@page { size: A4; margin: ${papel.margem}mm; }`
+                : `@page { size: ${papel.largura}mm ${papel.altura}mm; margin: ${papel.margem}mm 0; }`;
+            document.getElementById("impressao").innerHTML = document.getElementById("os-documento").innerHTML;
+            window.print();
+        }
+
+        async function baixarPDF() {
+            if (!osAberta) return;
+            if (typeof html2pdf === "undefined") {
+                aviso('Sem acesso à biblioteca de PDF. Na janela de impressão, escolha "Salvar como PDF".', "", 6000);
+                return imprimir();
+            }
+            const botao = document.getElementById("os-pdf");
+            botao.disabled = true;
+            try {
+                const papel = tamanhoPapel();
+                const termica = formato !== "a4";
+                await html2pdf().set({
+                    margin: termica ? [papel.margem, 0] : papel.margem,
+                    filename: `OS-${numeroOS(osAberta)}${termica ? "-cupom" : ""}.pdf`,
+                    image: { type: "jpeg", quality: 0.98 },
+                    html2canvas: { scale: 2, backgroundColor: "#ffffff" },
+                    jsPDF: { unit: "mm", format: termica ? [papel.largura, papel.altura] : "a4", orientation: "portrait" }
+                }).from(document.querySelector("#os-documento .os-doc")).save();
+            } catch (e) {
+                aviso("Não foi possível gerar o PDF: " + e.message, "erro");
+            } finally {
+                botao.disabled = false;
+            }
+        }
+    </script>
+    <script src="ui.js"></script>
+</body>
+</html>

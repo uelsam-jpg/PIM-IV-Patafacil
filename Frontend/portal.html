@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PataFácil - Portal do Tutor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="portal-body has-sidebar">
+    <!-- Menu Lateral (Sidebar Fixo) -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">PataFácil</div>
+        
+        <div class="sidebar-title">Menu Principal</div>
+        <ul class="sidebar-menu">
+            <li class="menu-staff" style="display:none;"><a href="dashboard.html">Visão Geral</a></li>
+            <li class="menu-tutor" style="display:none;"><a href="agendamento.html">Novo Agendamento</a></li>
+            <li class="menu-tutor" style="display:none;"><a href="portal.html" class="active">Meus Pets</a></li>
+            <li><a href="emails.html">Caixa de E-mail</a></li>
+            <li class="menu-staff" style="display:none;"><a href="atendente.html">Agenda do Balcão</a></li>
+            <li class="menu-staff" style="display:none;"><a href="ordens.html">Ordens de Serviço</a></li>
+            <li class="menu-vet" style="display:none;"><a href="veterinario.html">Painel Veterinário</a></li>
+            <li class="menu-gerente" style="display:none;"><a href="gerente.html">Gestão e Relatórios</a></li>
+            <li class="menu-staff" style="display:none;"><a href="estoque.html">Estoque e Vendas</a></li>
+        </ul>
+    </aside>
+
+    <nav class="navbar">
+        <div class="nav-logo">PataFácil</div>
+        <div class="nav-user">
+            <span id="nome-usuario">Carregando...</span>
+            <a href="#" onclick="sair()" class="logout-btn">Sair</a>
+        </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <main class="dashboard-container">
+        <header class="dashboard-header">
+            <h2>Meus Pets</h2>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-secondary" onclick="abrirModalPet()">+ Cadastrar Novo Pet</button>
+                <button class="btn-primary" onclick="window.location.href='agendamento.html'">Agendar Serviço</button>
+            </div>
+        </header>
+
+        <!-- Grade com a lista de Pets -->
+        <div class="pets-grid" id="pets-grid">
+            <p>Carregando seus pets...</p>
+        </div>
+
+        <!-- Meus Agendamentos -->
+        <header class="dashboard-header" style="margin-top: 50px;">
+            <h2>Meus Agendamentos</h2>
+        </header>
+        <div id="lista-agendamentos" style="display: flex; flex-direction: column; gap: 15px;">
+            <p>Carregando agendamentos...</p>
+        </div>
+    </main>
+
+    <!-- Modal para Cadastrar Pet -->
+    <div id="cadastro-pet-modal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-btn" onclick="fecharModalPet()">&times;</span>
+            <h2 style="color: var(--secondary); margin-bottom: 20px;">Cadastrar Novo Pet</h2>
+            <form id="form-cadastro-pet" onsubmit="salvarPet(event)">
+                <div style="margin-bottom: 15px;">
+                    <label>Nome do Pet</label>
+                    <input type="text" id="pet-nome" class="input-field" required>
+                </div>
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label>Espécie</label>
+                        <select id="pet-especie" class="input-field" required>
+                            <option value="0">Cachorro</option>
+                            <option value="1">Gato</option>
+                            <option value="2">Ave</option>
+                            <option value="3">Roedor</option>
+                            <option value="4">Outro</option>
+                        </select>
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Sexo</label>
+                        <select id="pet-sexo" class="input-field" required>
+                            <option value="0">Macho</option>
+                            <option value="1">Fêmea</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Raça</label>
+                    <input type="text" id="pet-raca" class="input-field" required>
+                </div>
+                <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                    <div style="flex: 1;">
+                        <label>Data de Nascimento</label>
+                        <input type="date" id="pet-nascimento" class="input-field" required>
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Peso Inicial (Kg)</label>
+                        <input type="number" id="pet-peso" class="input-field" step="0.1" placeholder="Ex: 5.5" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">Salvar Pet</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para Histórico Clínico (UC08) -->
+    <div id="historico-modal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close-btn" onclick="fecharModal()">&times;</span>
+            <h2 id="modal-pet-nome" style="color: var(--secondary); margin-bottom: 20px;">Histórico Clínico</h2>
+            <div id="modal-historico-conteudo">
+                <p>Carregando histórico...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plugin VLibras (acessibilidade em Libras) -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+    <script>
+        const API_URL = "http://localhost:5288/api";
+
+        // Escapa textos vindos da API antes de inseri-los no HTML (evita injeção de código)
+        function esc(texto) {
+            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        const usuarioLogado = JSON.parse(localStorage.getItem("usuario"));
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (!usuarioLogado) {
+                window.location.href = "index.html";
+                return;
+            }
+
+            // Preenche o nome e libera os menus corretos
+            document.getElementById("nome-usuario").innerText = "Olá, " + usuarioLogado.nome.split(" ")[0];
+            if (usuarioLogado.perfil === "Tutor") {
+                document.querySelectorAll('.menu-tutor').forEach(el => el.style.display = 'block');
+            }
+
+            carregarPets();
+            carregarAgendamentos();
+        });
+
+        async function carregarAgendamentos() {
+            const lista = document.getElementById("lista-agendamentos");
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/agendamento/tutor/${usuarioLogado.id}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                
+                if (res.ok) {
+                    const agendamentos = await res.json();
+                    lista.innerHTML = "";
+                    
+                    if (agendamentos.length === 0) {
+                        lista.innerHTML = "<p>Você não possui agendamentos marcados.</p>";
+                        return;
+                    }
+
+                    const statusNomes = ["Pendente", "Confirmado", "Concluído", "Cancelado"];
+                    const statusCores = ["#f39c12", "#3498db", "#2ecc71", "#e74c3c"];
+
+                    agendamentos.forEach(a => {
+                        const dataObj = new Date(a.dataHoraInicio);
+                        const dataFormatada = dataObj.toLocaleDateString('pt-BR') + ' às ' + dataObj.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+                        
+                        let btnCancelar = "";
+                        // Só permite cancelar se estiver Pendente(0) ou Confirmado(1)
+                        if (a.status === 0 || a.status === 1) {
+                            btnCancelar = `<button class="btn-secondary" style="color: #e74c3c; padding: 8px 15px;" onclick="cancelarAgendamentoTutor(${a.id})">Cancelar</button>`;
+                        }
+
+                        lista.innerHTML += `
+                            <div style="background: white; padding: 15px; border-radius: 12px; border-left: 5px solid ${statusCores[a.status]}; box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                                <div>
+                                    <h3 style="color: var(--secondary); font-size: 16px;">${dataFormatada}</h3>
+                                    <p style="font-size: 14px; color: #555; margin-top: 5px;"><strong>Pet:</strong> ${esc(a.nomePet)} | <strong>Serviço:</strong> ${esc(a.nomeServico)} | <strong>Profissional:</strong> ${esc(a.nomeProfissional)}</p>
+                                    <span style="display:inline-block; margin-top:8px; padding: 4px 8px; border-radius: 4px; background: ${statusCores[a.status]}; color: white; font-size: 12px; font-weight: bold;">
+                                        ${statusNomes[a.status]}
+                                    </span>
+                                </div>
+                                <div>${btnCancelar}</div>
+                            </div>
+                        `;
+                    });
+                } else lista.innerHTML = "<p style='color:red;'>Erro ao carregar agendamentos.</p>";
+            } catch (e) { lista.innerHTML = "<p style='color:red;'>Erro de conexão ao buscar agendamentos.</p>"; }
+        }
+
+        async function cancelarAgendamentoTutor(id) {
+            if (!confirm("Deseja realmente cancelar este agendamento?\nLembre-se que é necessário pelo menos 2h de antecedência (RN02).")) return;
+            
+            const token = localStorage.getItem("token");
+            try {
+                const res = await fetch(`${API_URL}/agendamento/${id}`, { method: 'DELETE', headers: { "Authorization": `Bearer ${token}` } });
+                if (res.ok) {
+                    alert("Agendamento cancelado com sucesso!");
+                    carregarAgendamentos(); // Recarrega a tela para atualizar o Status
+                } else {
+                    let textoErro = "Não foi possível cancelar.";
+                    try {
+                        const erro = await res.json();
+                        textoErro = erro.Erro || erro.erro || erro.mensagem || textoErro;
+                    } catch(e) {}
+                    alert("Erro ao cancelar:\n" + textoErro);
+                }
+            } catch (e) { alert("Erro de conexão ao tentar cancelar."); }
+        }
+
+        async function carregarPets() {
+            const petsGrid = document.getElementById("pets-grid");
+
+            try {
+                const token = localStorage.getItem("token");
+                const urlApi = `${API_URL}/Pets/tutor/${usuarioLogado.id}`;
+                const response = await fetch(urlApi, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+                
+                if (response.status === 401) {
+                    petsGrid.innerHTML = "<p style='color:red;'>Acesso negado. Faça o login novamente.</p>";
+                    return;
+                }
+                const pets = await response.json();
+
+                petsGrid.innerHTML = ""; // Limpa a mensagem de carregando
+
+                if (pets.length === 0) {
+                    petsGrid.innerHTML = "<p>Você ainda não possui pets cadastrados. :(</p>";
+                    return;
+                }
+
+                // Monta os cards dinamicamente com os dados do banco
+                const especies = ["Cachorro", "Gato", "Ave", "Roedor", "Outro"];
+                const emojis = ["🐶", "🐱", "🐦", "🐹", "🐾"];
+
+                pets.forEach(pet => {
+                    const especieNome = especies[pet.especie] || "Outro";
+                    const emoji = emojis[pet.especie] || "🐾";
+
+                    petsGrid.innerHTML += `
+                        <div class="pet-card">
+                            <div class="pet-avatar">${emoji}</div>
+                            <div class="pet-info">
+                                <h3>${esc(pet.nome)}</h3>
+                                <p>${especieNome} - ${esc(pet.raca)}</p>
+                            </div>
+                            <button class="btn-secondary" data-nome="${esc(pet.nome)}" onclick="mostrarHistorico(${pet.id}, this.dataset.nome)">Histórico</button>
+                        </div>
+                    `;
+                });
+            } catch (erro) {
+                petsGrid.innerHTML = "<p style='color:red;'>Erro ao conectar com a API. O backend está rodando?</p>";
+                console.error(erro);
+            }
+        }
+
+        function abrirModalPet() {
+            document.getElementById('cadastro-pet-modal').style.display = 'flex';
+        }
+
+        function fecharModalPet() {
+            document.getElementById('cadastro-pet-modal').style.display = 'none';
+        }
+
+        async function salvarPet(event) {
+            event.preventDefault();
+            const novoPet = {
+                nome: document.getElementById("pet-nome").value,
+                especie: parseInt(document.getElementById("pet-especie").value),
+                sexo: parseInt(document.getElementById("pet-sexo").value),
+                raca: document.getElementById("pet-raca").value,
+                dataNascimento: document.getElementById("pet-nascimento").value + "T00:00:00",
+                pesoKg: parseFloat(document.getElementById("pet-peso").value),
+                tutorId: usuarioLogado.id,
+                ativo: true
+            };
+
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/pets`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                    body: JSON.stringify(novoPet)
+                });
+
+                if (res.ok) {
+                    alert("Pet cadastrado com sucesso!");
+                    document.getElementById("form-cadastro-pet").reset();
+                    fecharModalPet();
+                    carregarPets(); // Recarrega a lista para o pet novo aparecer na hora
+                } else alert("Erro ao cadastrar pet: " + (await res.text()));
+            } catch (e) { alert("Erro de conexão ao tentar cadastrar o pet."); }
+        }
+
+        function sair() {
+            localStorage.removeItem("token");
+            localStorage.removeItem("usuario");
+            window.location.href = "index.html";
+        }
+
+        function fecharModal() {
+            document.getElementById('historico-modal').style.display = 'none';
+        }
+
+        async function mostrarHistorico(petId, petNome) {
+            const modal = document.getElementById('historico-modal');
+            const conteudo = document.getElementById('modal-historico-conteudo');
+            
+            document.getElementById('modal-pet-nome').innerText = `Histórico de ${petNome}`;
+            modal.style.display = 'flex';
+            conteudo.innerHTML = '<p>Buscando registros...</p>';
+
+            try {
+                const token = localStorage.getItem("token");
+                const res = await fetch(`${API_URL}/historico/pet/${petId}`, {
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (res.status === 403) {
+                    conteudo.innerHTML = "<p style='color:red;'>Acesso negado. Você não tem permissão para ver este histórico.</p>";
+                    return;
+                }
+                if (!res.ok) throw new Error('Falha na busca');
+
+                const historicos = await res.json();
+                conteudo.innerHTML = '';
+
+                if (historicos.length === 0) {
+                    conteudo.innerHTML = '<p>Nenhum registro de atendimento encontrado para este pet.</p>';
+                    return;
+                }
+
+                const tiposAtendimento = ["Consulta Clínica", "Aplicação de Vacina", "Exames", "Cirurgia"];
+
+                historicos.forEach(h => {
+                    const dataAtendimento = new Date(h.dataAtendimento).toLocaleDateString('pt-BR');
+                    conteudo.innerHTML += `
+                        <div style="background: #f8fafc; padding: 15px; border-radius: 12px; margin-bottom: 15px; border-left: 4px solid var(--primary);">
+                            <p><strong>Data:</strong> ${dataAtendimento}</p>
+                            <p><strong>Tipo:</strong> ${tiposAtendimento[h.tipo] || 'Não especificado'}</p>
+                            <p><strong>Descrição:</strong> ${esc(h.descricao)}</p>
+                            ${h.diagnostico ? `<p><strong>Diagnóstico:</strong> ${esc(h.diagnostico)}</p>` : ''}
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                conteudo.innerHTML = "<p style='color:red;'>Não foi possível carregar o histórico. Tente novamente mais tarde.</p>";
+            }
+        }
+    </script>
+    <script src="ui.js"></script>
+</body>
+</html>

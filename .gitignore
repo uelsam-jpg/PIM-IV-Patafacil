@@ -1,0 +1,27 @@
+# Cópia antiga do projeto e material da universidade (ficam só no computador)
+/pin/
+/Manual_PIM_IV - ADS.pdf
+
+# .NET
+bin/
+obj/
+.vs/
+*.user
+TestResults/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+MachineLearning/*.joblib
+
+# Mobile (Expo / React Native)
+node_modules/
+.expo/
+.expo-shared/
+
+# Word / sistema
+~$*
+Thumbs.db
+desktop.ini
+.DS_Store

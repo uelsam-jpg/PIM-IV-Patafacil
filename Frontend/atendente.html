@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda do Balcão - PataFácil</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="portal-body has-sidebar">
+    <!-- Menu Lateral (Sidebar Fixo) -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">PataFácil</div>
+
+        <div class="sidebar-title">Menu Principal</div>
+        <ul class="sidebar-menu">
+            <li><a href="atendente.html" class="active">Agenda do Balcão</a></li>
+            <li><a href="ordens.html">Ordens de Serviço</a></li>
+            <li class="menu-staff" style="display:none;"><a href="dashboard.html">Visão Geral</a></li>
+            <li><a href="emails.html">Caixa de E-mail <span class="badge-menu" id="badge-emails" hidden></span></a></li>
+            <li class="menu-vet" style="display:none;"><a href="veterinario.html">Painel Veterinário</a></li>
+            <li class="menu-gerente" style="display:none;"><a href="gerente.html">Gestão e Relatórios</a></li>
+            <li class="menu-staff" style="display:none;"><a href="estoque.html">Estoque e Vendas</a></li>
+        </ul>
+
+        <div class="sidebar-title" style="margin-top: 30px;">Sistema</div>
+        <ul class="sidebar-menu">
+            <li><a href="#" onclick="sair()" style="color: #e74c3c;">Sair</a></li>
+        </ul>
+    </aside>
+
+    <nav class="navbar">
+        <div class="nav-logo">Agenda do Balcão</div>
+        <div class="nav-user">
+            <span id="nome-usuario">Carregando...</span>
+            <a href="#" class="logout-btn" onclick="sair()">Sair</a>
+        </div>
+    </nav>
+
+    <main class="dashboard-container agenda-wrap">
+        <div class="agenda-topo">
+            <div>
+                <h2>Agenda</h2>
+                <p class="agenda-sub" id="periodo-label">Carregando...</p>
+            </div>
+            <div class="agenda-nav">
+                <button type="button" class="btn-primary" id="btn-novo-agendamento" hidden onclick="abrirNovoAgendamento()">+ Novo agendamento</button>
+                <div class="seletor-modo" role="group" aria-label="Visualização">
+                    <button type="button" data-modo="dia" class="ativo" onclick="trocarModo('dia')">Dia</button>
+                    <button type="button" data-modo="semana" onclick="trocarModo('semana')">Semana</button>
+                </div>
+                <button type="button" class="btn-icone" onclick="mover(-1)" aria-label="Período anterior" title="Anterior">‹</button>
+                <button type="button" class="btn-secondary" onclick="irParaHoje()">Hoje</button>
+                <button type="button" class="btn-icone" onclick="mover(1)" aria-label="Próximo período" title="Próximo">›</button>
+                <input type="date" id="data-ref" class="input-data" aria-label="Escolher data" onchange="escolherData(this.value)">
+            </div>
+        </div>
+
+        <div class="abas" role="tablist">
+            <button type="button" class="aba ativa" data-aba="agendados" role="tab" onclick="trocarAba('agendados')">Agendados <span class="contador" id="c-agendados">0</span></button>
+            <button type="button" class="aba" data-aba="processo" role="tab" onclick="trocarAba('processo')">Em processo <span class="contador" id="c-processo">0</span></button>
+            <button type="button" class="aba" data-aba="finalizados" role="tab" onclick="trocarAba('finalizados')">Finalizados <span class="contador" id="c-finalizados">0</span></button>
+            <button type="button" class="aba" data-aba="cancelados" role="tab" onclick="trocarAba('cancelados')">Cancelados <span class="contador" id="c-cancelados">0</span></button>
+        </div>
+
+        <div id="conteudo"><p style="color:#777;">Buscando agendamentos...</p></div>
+    </main>
+
+    <!-- Finalizar atendimento e receber o pagamento -->
+    <div id="modal-pagamento" class="modal" role="dialog" aria-modal="true" aria-labelledby="pg-titulo">
+        <div class="modal-content" style="max-width: 460px;">
+            <span class="close-btn" onclick="fecharModal('modal-pagamento')">&times;</span>
+            <h2 id="pg-titulo" style="color: var(--secondary); margin-bottom: 14px;">Finalizar e receber</h2>
+            <div class="pg-resumo" id="pg-resumo"></div>
+
+            <label class="pg-label" for="pg-valor">Valor pago</label>
+            <div class="campo-moeda"><span>R$</span><input type="number" id="pg-valor" min="0.01" step="0.01" inputmode="decimal" oninput="atualizarTroco()"></div>
+            <p class="pg-dica" id="pg-preco"></p>
+
+            <span class="pg-label">Forma de pagamento</span>
+            <div class="pg-formas" role="radiogroup" aria-label="Forma de pagamento">
+                <button type="button" class="pg-forma" role="radio" aria-checked="false" data-forma="3" onclick="escolherForma(3)">Pix</button>
+                <button type="button" class="pg-forma" role="radio" aria-checked="false" data-forma="0" onclick="escolherForma(0)">Dinheiro</button>
+                <button type="button" class="pg-forma" role="radio" aria-checked="false" data-forma="2" onclick="escolherForma(2)">Débito</button>
+                <button type="button" class="pg-forma" role="radio" aria-checked="false" data-forma="1" onclick="escolherForma(1)">Crédito</button>
+            </div>
+
+            <div class="pg-troco" id="pg-troco" hidden>
+                <label for="pg-recebido">Valor entregue pelo cliente (para calcular o troco)</label>
+                <input type="number" id="pg-recebido" min="0" step="0.01" inputmode="decimal" oninput="atualizarTroco()">
+                <div class="pg-troco-valor" id="pg-troco-valor"></div>
+            </div>
+
+            <div class="pg-botoes">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modal-pagamento')">Voltar</button>
+                <button type="button" class="btn-primary btn-receber" id="pg-confirmar" onclick="confirmarPagamento()">Confirmar pagamento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmação genérica (no lugar do confirm do navegador) -->
+    <div id="modal-confirmar" class="modal" role="dialog" aria-modal="true">
+        <div class="modal-content" style="max-width: 420px;">
+            <h2 id="cf-titulo" style="margin-bottom: 10px;"></h2>
+            <p id="cf-texto" style="color: #475569;"></p>
+            <div class="pg-botoes">
+                <button type="button" class="btn-secondary" onclick="fecharModal('modal-confirmar')">Voltar</button>
+                <button type="button" class="btn-primary" id="cf-ok" style="background:#dc2626;">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Agendamento feito pelo balcão (cliente que veio pessoalmente ou ligou) -->
+    <div id="modal-agendar" class="modal" role="dialog" aria-modal="true" aria-labelledby="ag-titulo">
+        <div class="modal-content agendar-balcao">
+            <span class="close-btn" onclick="fecharModal('modal-agendar')">&times;</span>
+            <h2 id="ag-titulo" style="color: var(--secondary); margin-bottom: 4px;">Novo agendamento</h2>
+            <p class="pg-dica" style="margin-bottom: 16px;">Para o cliente que veio ao balcão ou ligou. As mesmas regras do agendamento online valem aqui.</p>
+
+            <!-- 1. Cliente -->
+            <section class="ab-passo">
+                <h3 class="est-titulo"><span class="ab-num">1</span> Cliente</h3>
+                <div id="ab-cliente-escolhido" class="chip-escolha" hidden></div>
+                <div class="busca" id="ab-busca-cliente-caixa">
+                    <input type="search" id="ab-busca-cliente" class="input-field" placeholder="Digite o nome, CPF ou telefone..." autocomplete="off"
+                           role="combobox" aria-expanded="false" aria-controls="ab-lista-cliente" aria-autocomplete="list">
+                    <ul class="busca-lista" id="ab-lista-cliente" role="listbox" hidden></ul>
+                </div>
+                <div id="ab-novo-cliente" class="campos-novo" hidden>
+                    <div class="form-grade">
+                        <div><label for="ab-cli-nome">Nome completo *</label><input type="text" id="ab-cli-nome" class="input-field" maxlength="120"></div>
+                        <div><label for="ab-cli-cpf">CPF *</label><input type="text" id="ab-cli-cpf" class="input-field" inputmode="numeric" maxlength="14"></div>
+                        <div><label for="ab-cli-tel">Telefone / WhatsApp *</label><input type="tel" id="ab-cli-tel" class="input-field" maxlength="15" placeholder="(11) 98765-4321"></div>
+                    </div>
+                    <div class="form-grade" style="margin-top: 10px; grid-template-columns: 2fr 1fr;">
+                        <div><label for="ab-cli-email">E-mail (opcional)</label><input type="email" id="ab-cli-email" class="input-field" maxlength="160"></div>
+                        <div style="display:flex; align-items:flex-end; gap:8px;">
+                            <button type="button" class="btn-secondary" onclick="cancelarNovoCliente()">Cancelar</button>
+                            <button type="button" class="btn-primary" style="flex:1;" onclick="salvarNovoCliente()">Salvar cliente</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 2. Pet -->
+            <section class="ab-passo" id="ab-passo-pet" hidden>
+                <h3 class="est-titulo"><span class="ab-num">2</span> Pet</h3>
+                <div class="ab-opcoes" id="ab-pets"></div>
+                <div id="ab-novo-pet" class="campos-novo" hidden>
+                    <div class="form-grade quatro">
+                        <div><label for="ab-pet-nome">Nome do pet *</label><input type="text" id="ab-pet-nome" class="input-field" maxlength="80"></div>
+                        <div><label for="ab-pet-especie">Espécie</label>
+                            <select id="ab-pet-especie" class="input-field"><option value="0">Cachorro</option><option value="1">Gato</option><option value="2">Ave</option><option value="3">Roedor</option><option value="4">Outro</option></select></div>
+                        <div><label for="ab-pet-raca">Raça</label><input type="text" id="ab-pet-raca" class="input-field" maxlength="80" placeholder="Ex.: SRD"></div>
+                        <div><label for="ab-pet-sexo">Sexo</label>
+                            <select id="ab-pet-sexo" class="input-field"><option value="0">Macho</option><option value="1">Fêmea</option></select></div>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top: 10px;">
+                        <button type="button" class="btn-secondary" onclick="document.getElementById('ab-novo-pet').hidden = true">Cancelar</button>
+                        <button type="button" class="btn-primary" onclick="salvarNovoPet()">Salvar pet</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. Serviço e profissional -->
+            <section class="ab-passo" id="ab-passo-servico" hidden>
+                <h3 class="est-titulo"><span class="ab-num">3</span> Serviço</h3>
+                <div class="ab-opcoes" id="ab-servicos"></div>
+                <h3 class="est-titulo" style="margin-top: 14px;"><span class="ab-num">4</span> Profissional</h3>
+                <div class="ab-opcoes" id="ab-profissionais"><p class="pg-dica">Escolha o serviço primeiro.</p></div>
+            </section>
+
+            <!-- 5. Dia e horário -->
+            <section class="ab-passo" id="ab-passo-horario" hidden>
+                <h3 class="est-titulo"><span class="ab-num">5</span> Dia e horário</h3>
+                <div class="ab-datas">
+                    <button type="button" class="btn-secondary" onclick="definirDataAgendamento(0)">Hoje</button>
+                    <button type="button" class="btn-secondary" onclick="definirDataAgendamento(1)">Amanhã</button>
+                    <input type="date" id="ab-data" class="input-data" onchange="carregarHorariosBalcao()" aria-label="Data do agendamento">
+                </div>
+                <div class="ab-horarios" id="ab-horarios"></div>
+                <label for="ab-obs" style="display:block; margin-top: 14px; font-size: 13.5px; font-weight: 700; color: #475569;">Observações (opcional)</label>
+                <textarea id="ab-obs" class="input-field" rows="2" maxlength="500" placeholder="Ex.: cliente pediu tosa na tesoura"></textarea>
+            </section>
+
+            <div class="ab-rodape">
+                <div id="ab-resumo" class="ab-resumo">Escolha o cliente para começar.</div>
+                <button type="button" class="btn-primary" id="ab-confirmar" disabled onclick="confirmarAgendamentoBalcao()">Confirmar agendamento</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toasts" id="toasts" aria-live="polite"></div>
+
+    <!-- Plugin VLibras (acessibilidade em Libras) -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+
+    <script src="busca.js"></script>
+    <script>
+        const API_URL = "http://localhost:5288/api";
+
+        // Escapa textos vindos da API antes de inseri-los no HTML (evita injeção de código)
+        function esc(texto) {
+            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        let usuarioLogado = null;
+        try { usuarioLogado = JSON.parse(localStorage.getItem("usuario")); } catch (e) {}
+
+        const ESPECIES = ["Cachorro", "Gato", "Ave", "Roedor", "Outro"];
+        const EMOJIS = ["🐶", "🐱", "🐦", "🐹", "🐾"];
+        const FORMAS = ["Dinheiro", "Cartão de crédito", "Cartão de débito", "Pix"];
+        const moeda = v => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+        // Estado da tela
+        let modo = "dia";
+        let dataRef = new Date();
+        let abaAtual = "agendados";
+        let doPeriodo = [];
+        let emProcesso = [];
+        const porId = new Map();
+        const obsAlteradas = new Set();
+        const rascunhos = new Map();
+        let podeOperar = false;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            if (!usuarioLogado) {
+                window.location.href = "index.html";
+                return;
+            }
+            const perfil = usuarioLogado.perfil;
+            if (!["Atendente", "Gerente", "Tosador"].includes(perfil)) {
+                window.location.href = "dashboard.html";
+                return;
+            }
+
+            // Chegada, pagamento e cancelamento são do balcão; o tosador consulta e anota
+            podeOperar = perfil === "Atendente" || perfil === "Gerente";
+            document.getElementById("btn-novo-agendamento").hidden = !podeOperar;
+            if (podeOperar) prepararAgendamentoBalcao();
+            if (podeOperar) document.querySelectorAll('.menu-staff').forEach(el => el.style.display = 'block');
+            if (perfil === "Gerente") {
+                document.querySelectorAll('.menu-vet').forEach(el => el.style.display = 'block');
+                document.querySelectorAll('.menu-gerente').forEach(el => el.style.display = 'block');
+            }
+
+            const prefixo = { Gerente: "Gerente: ", Atendente: "Atendente: ", Tosador: "Banho e Tosa: " }[perfil];
+            document.getElementById("nome-usuario").innerText = prefixo + (usuarioLogado.nome || "Usuário").split(" ")[0];
+
+            // Permite abrir direto numa visão: atendente.html?modo=semana&aba=processo
+            const params = new URLSearchParams(location.search);
+            if (params.get("aba") && document.querySelector(`.aba[data-aba="${params.get("aba")}"]`)) trocarAba(params.get("aba"));
+            if (params.get("modo") === "semana") trocarModo("semana"); else carregar();
+            carregarContadorEmails();
+
+            // Atualiza sozinha a cada minuto, sem atrapalhar quem está digitando
+            setInterval(() => {
+                const modalAberto = [...document.querySelectorAll('.modal')].some(m => m.style.display === 'flex');
+                if (!modalAberto && obsAlteradas.size === 0) carregar(true);
+                carregarContadorEmails();
+            }, 60000);
+        });
+
+        function sair() {
+            localStorage.clear();
+            window.location.href = "index.html";
+        }
+
+        // ===== Chamadas à API =====
+        async function api(caminho, opcoes = {}) {
+            const res = await fetch(`${API_URL}${caminho}`, {
+                ...opcoes,
+                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}`, "Content-Type": "application/json", ...(opcoes.headers || {}) }
+            });
+            if (res.status === 401) throw new Error("Sua sessão expirou. Faça login novamente.");
+            if (res.status === 403) throw new Error("Seu perfil não tem permissão para esta ação.");
+            if (!res.ok) {
+                let msg = `Erro ${res.status}`;
+                try { const j = await res.json(); msg = j.Erro || j.erro || j.Mensagem || j.mensagem || j.title || msg; } catch (e) {}
+                throw new Error(msg);
+            }
+            const texto = await res.text();
+            return texto ? JSON.parse(texto) : null;
+        }
+
+        function aviso(texto, tipo = "") {
+            const t = document.createElement("div");
+            t.className = "toast " + tipo;
+            t.textContent = texto;
+            document.getElementById("toasts").appendChild(t);
+            setTimeout(() => t.remove(), 4000);
+        }
+
+        async function carregarContadorEmails() {
+            try {
+                const r = await api("/emails/nao-lidos");
+                const badge = document.getElementById("badge-emails");
+                badge.textContent = r.total;
+                badge.hidden = r.total === 0;
+            } catch (e) { /* o contador é só um apoio */ }
+        }
+
+        // ===== Datas =====
+        const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const mesmoDia = (a, b) => iso(a) === iso(b);
+        const hora = d => new Date(d).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+        function inicioDaSemana(d) {
+            const s = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            s.setDate(s.getDate() - ((s.getDay() + 6) % 7)); // segunda-feira
+            return s;
+        }
+
+        function periodoAtual() {
+            if (modo === "dia") {
+                const d = new Date(dataRef.getFullYear(), dataRef.getMonth(), dataRef.getDate());
+                return { inicio: d, fim: d };
+            }
+            const inicio = inicioDaSemana(dataRef);
+            const fim = new Date(inicio); fim.setDate(fim.getDate() + 6);
+            return { inicio, fim };
+        }
+
+        const maiuscula = t => t.charAt(0).toUpperCase() + t.slice(1);
+
+        function textoPeriodo({ inicio, fim }) {
+            if (modo === "dia") {
+                const txt = maiuscula(inicio.toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+                return mesmoDia(inicio, new Date()) ? `Hoje · ${txt}` : txt;
+            }
+            const sabado = new Date(inicio); sabado.setDate(sabado.getDate() + 5);
+            const a = inicio.toLocaleDateString("pt-BR", { day: "numeric", month: "long" });
+            const b = sabado.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+            const semanaHoje = mesmoDia(inicioDaSemana(new Date()), inicio);
+            return `${semanaHoje ? "Esta semana · " : ""}${a} a ${b}`;
+        }
+
+        function trocarModo(novo) {
+            modo = novo;
+            document.querySelectorAll('.seletor-modo button').forEach(b => b.classList.toggle('ativo', b.dataset.modo === novo));
+            carregar();
+        }
+        function mover(direcao) {
+            dataRef.setDate(dataRef.getDate() + direcao * (modo === "dia" ? 1 : 7));
+            carregar();
+        }
+        function irParaHoje() { dataRef = new Date(); carregar(); }
+        function escolherData(valor) {
+            if (!valor) return;
+            const [a, m, d] = valor.split("-").map(Number);
+            dataRef = new Date(a, m - 1, d);
+            carregar();
+        }
+
+        function trocarAba(aba) {
+            abaAtual = aba;
+            document.querySelectorAll('.aba').forEach(b => b.classList.toggle('ativa', b.dataset.aba === aba));
+            renderizar();
+        }
+
+        // ===== Carregamento =====
+        async function carregar(silencioso = false) {
+            const periodo = periodoAtual();
+            document.getElementById("periodo-label").textContent = textoPeriodo(periodo);
+            document.getElementById("data-ref").value = iso(dataRef);
+            // Atualizações automáticas ou depois de uma ação não refazem a animação de entrada
+            document.getElementById("conteudo").classList.toggle("sem-animar", silencioso);
+            if (!silencioso) document.getElementById("conteudo").innerHTML = "<p style='color:#777;'>Atualizando...</p>";
+
+            try {
+                const [lista, processo] = await Promise.all([
+                    api(`/agendamento/periodo?inicio=${iso(periodo.inicio)}&fim=${iso(periodo.fim)}`),
+                    api(`/agendamento/em-atendimento`)
+                ]);
+                doPeriodo = lista;
+                emProcesso = processo;
+                porId.clear();
+                [...lista, ...processo].forEach(a => porId.set(a.id, a));
+                renderizar();
+            } catch (e) {
+                document.getElementById("conteudo").innerHTML = `<div class="estado-vazio">${esc(e.message === "Failed to fetch" ? "Não foi possível conectar à API. Ela está rodando?" : e.message)}</div>`;
+            }
+        }
+
+        // Em que aba o agendamento fica
+        function situacao(a) {
+            if (a.status === 3) return "cancelado";
+            if (a.dataPagamento) return "finalizado";
+            if (a.dataChegada) return "processo";
+            if (a.status === 2) return "finalizado"; // concluído pelo veterinário, ainda sem baixa
+            return a.status === 1 ? "confirmado" : "pendente";
+        }
+        const ABA_DA_SITUACAO = { pendente: "agendados", confirmado: "agendados", processo: "processo", finalizado: "finalizados", cancelado: "cancelados" };
+        const ROTULOS = { pendente: "Pendente", confirmado: "Confirmado", processo: "Em processo", finalizado: "Finalizado", cancelado: "Cancelado" };
+
+        function renderizar() {
+            desenhar();
+            // Recoloca as observações que ainda estavam sendo digitadas
+            obsAlteradas.forEach(id => {
+                const campo = document.getElementById(`obs-${id}`);
+                if (!campo) return;
+                campo.value = rascunhos.get(id) ?? campo.value;
+                document.getElementById(`salvar-obs-${id}`).hidden = false;
+            });
+        }
+
+        function desenhar() {
+            const grupos = { agendados: [], finalizados: [], cancelados: [] };
+            doPeriodo.forEach(a => {
+                const aba = ABA_DA_SITUACAO[situacao(a)];
+                if (grupos[aba]) grupos[aba].push(a);
+            });
+
+            document.getElementById("c-agendados").textContent = grupos.agendados.length;
+            document.getElementById("c-finalizados").textContent = grupos.finalizados.length;
+            document.getElementById("c-cancelados").textContent = grupos.cancelados.length;
+            const cProc = document.getElementById("c-processo");
+            cProc.textContent = emProcesso.length;
+            cProc.classList.toggle("tem", emProcesso.length > 0);
+
+            const conteudo = document.getElementById("conteudo");
+            if (abaAtual === "processo") {
+                const lista = [...emProcesso].sort((x, y) => new Date(x.dataChegada) - new Date(y.dataChegada));
+                conteudo.innerHTML = `<p class="aviso-aba">Clientes que já chegaram e aguardam a finalização, de qualquer dia. Quando o pet estiver pronto e o cliente vier buscar, clique em <strong>Finalizar e receber</strong>.</p>`
+                    + (lista.length ? lista.map(cartao).join("") : vazio("Nenhum cliente em processo agora."));
+                return;
+            }
+
+            const itens = grupos[abaAtual];
+            const vazios = { agendados: "Nenhum agendamento aguardando neste período.", finalizados: "Nenhum atendimento finalizado neste período.", cancelados: "Nenhum cancelamento neste período." };
+            if (modo === "dia") {
+                const domingo = periodoAtual().inicio.getDay() === 0;
+                conteudo.innerHTML = itens.length ? itens.map(cartao).join("") : vazio(domingo ?"Domingo não há expediente." : vazios[abaAtual]);
+                return;
+            }
+
+            // Semana: um bloco por dia (segunda a sábado; domingo só aparece se tiver algo)
+            const { inicio } = periodoAtual();
+            let html = "";
+            for (let i = 0; i < 7; i++) {
+                const dia = new Date(inicio); dia.setDate(dia.getDate() + i);
+                const doDia = itens.filter(a => mesmoDia(new Date(a.dataHoraInicio), dia));
+                if (i === 6 && doDia.length === 0) continue;
+                const ehHoje = mesmoDia(dia, new Date());
+                const titulo = maiuscula(dia.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "2-digit" }));
+                html += `<section class="dia-grupo">
+                    <h3 class="dia-titulo ${ehHoje ? "hoje" : ""}">${titulo} ${ehHoje ? '<span class="tag-hoje">hoje</span>' : ""} <span style="font-weight:600;">· ${doDia.length} ${doDia.length === 1 ? "atendimento" : "atendimentos"}</span></h3>
+                    ${doDia.length ? doDia.map(cartao).join("") : '<p class="dia-vazio">Sem agendamentos.</p>'}
+                </section>`;
+            }
+            conteudo.innerHTML = itens.length ? html : vazio(vazios[abaAtual]);
+        }
+
+        function vazio(texto) {
+            return `<div class="estado-vazio">${texto}</div>`;
+        }
+
+        // Separa o que o cliente escreveu da etiqueta que a IA acrescenta nas observações
+        function lerObservacoes(texto) {
+            const linhas = String(texto || "").split("\n");
+            const ia = linhas.map(l => l.match(/\[IA\] Risco de Cancelamento: (\w+) \((\d+)%\)/)).find(Boolean);
+            const cliente = linhas.filter(l => !l.startsWith("[IA]")).join("\n").trim();
+            return { cliente, ia: ia ? { risco: ia[1], pct: ia[2] } : null };
+        }
+
+        function contato(a) {
+            if (!a.telefoneTutor) return `<span class="sem-telefone">telefone não informado</span>`;
+            const digitos = a.telefoneTutor.replace(/\D/g, "");
+            return `<a href="tel:+55${digitos}">${esc(a.telefoneTutor)}</a>
+                    <a class="link-wpp" href="https://wa.me/55${digitos}" target="_blank" rel="noopener">WhatsApp</a>`;
+        }
+
+        function cartao(a) {
+            const st = situacao(a);
+            const inicio = new Date(a.dataHoraInicio);
+            const obs = lerObservacoes(a.observacoes);
+            const passou = (st === "pendente" || st === "confirmado") && inicio < new Date();
+            const emoji = EMOJIS[a.especiePet] ?? "🐾";
+            const infoPet = [ESPECIES[a.especiePet], a.racaPet].filter(Boolean).map(esc).join(" · ");
+            const dataCurta = abaAtual === "processo" && !mesmoDia(inicio, new Date())
+                ? `<span>${inicio.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}</span>` : "";
+
+            return `
+            <article class="ag-card st-${st}" id="ag-${a.id}">
+                <div class="ag-hora">
+                    <strong>${hora(a.dataHoraInicio)}</strong>
+                    <span>até ${hora(a.dataHoraFim)}</span> ${dataCurta}
+                    ${passou ? '<span class="atrasado">horário já passou</span>' : ""}
+                </div>
+                <div class="ag-corpo">
+                    <div class="ag-linha1">
+                        <span class="ag-pet">${emoji} ${esc(a.nomePet)}</span>
+                        ${infoPet ? `<span class="ag-pet-info">${infoPet}</span>` : ""}
+                        <span class="badge-st st-${st}">${ROTULOS[st]}</span>
+                    </div>
+                    <div class="ag-detalhe">
+                        <span><strong>${esc(a.nomeTutor)}</strong></span>
+                        ${contato(a)}
+                    </div>
+                    <div class="ag-detalhe">
+                        <span>${/banho|tosa/i.test(a.nomeServico) ? "" : ""} ${esc(a.nomeServico)}</span>
+                        <span>com ${esc(a.nomeProfissional)}</span>
+                        <span>${moeda(a.preco)}</span>
+                    </div>
+                    ${obs.cliente ? `<div class="ag-nota-cliente"><strong>Cliente:</strong> ${esc(obs.cliente)}</div>` : ""}
+                    ${obs.ia ? `<span class="ag-ia ${obs.ia.risco === "ALTO" ? "alto" : ""}">Risco de falta: ${esc(obs.ia.risco)} (${esc(obs.ia.pct)}%)</span>` : ""}
+                    ${blocoObservacao(a, st)}
+                </div>
+                <div class="ag-acoes">${acoes(a, st)}
+                    <a class="btn-texto link-os" href="ordens.html?id=${a.id}&data=${String(a.dataHoraInicio).slice(0, 10)}">Ordem de serviço</a></div>
+            </article>`;
+        }
+
+        function blocoObservacao(a, st) {
+            const texto = a.observacoesAtendimento || "";
+            if (st === "cancelado" || st === "finalizado") {
+                return texto ? `<div class="ag-nota-cliente" style="background:#fffdf5;"><strong>Equipe:</strong> ${esc(texto)}</div>` : "";
+            }
+            return `<div class="ag-obs">
+                <label for="obs-${a.id}">Observações da equipe sobre o pet</label>
+                <textarea id="obs-${a.id}" rows="2" maxlength="2000" placeholder="Ex.: pelo com nós, alergia a shampoo, tutor pediu laço..." oninput="observacaoAlterada(${a.id})">${esc(texto)}</textarea>
+                <div class="linha-salvar">
+                    <button type="button" class="btn-mini" id="salvar-obs-${a.id}" hidden onclick="salvarObservacao(${a.id})">Salvar observação</button>
+                    <span class="salvo" id="salvo-obs-${a.id}" hidden>Salvo</span>
+                </div>
+            </div>`;
+        }
+
+        function acoes(a, st) {
+            if (st === "cancelado") return `<div class="situacao">Cancelado</div>`;
+            if (st === "finalizado") {
+                if (a.dataPagamento) {
+                    return `<div class="situacao">Pago<strong>${moeda(a.valorPago)}</strong>${FORMAS[a.formaPagamento] ?? ""}<br>${new Date(a.dataPagamento).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}</div>`;
+                }
+                return `<div class="situacao">Concluído<br>pagamento pendente</div>` +
+                    (podeOperar ? `<button type="button" class="btn-primary btn-receber" onclick="abrirPagamento(${a.id})">Receber</button>` : "");
+            }
+            if (st === "processo") {
+                const minutos = Math.max(0, Math.round((Date.now() - new Date(a.dataChegada)) / 60000));
+                const tempo = minutos < 60 ? `há ${minutos} min` : `há ${Math.floor(minutos / 60)}h${String(minutos % 60).padStart(2, "0")}`;
+                return `<div class="situacao">Chegou às ${hora(a.dataChegada)}<br>${tempo}</div>` +
+                    (podeOperar ? `<button type="button" class="btn-primary btn-receber" onclick="abrirPagamento(${a.id})">Finalizar e receber</button>` : "");
+            }
+            if (!podeOperar) return "";
+            return `<button type="button" class="btn-primary btn-chegou" onclick="registrarChegada(${a.id})">Cliente chegou</button>
+                ${st === "pendente" ? `<button type="button" class="btn-secondary" onclick="confirmar(${a.id})">Confirmar horário</button>` : ""}
+                <button type="button" class="btn-texto perigo" onclick="pedirCancelamento(${a.id})">Cancelar agendamento</button>`;
+        }
+
+        // ===== Observações da equipe =====
+        function observacaoAlterada(id) {
+            const original = porId.get(id)?.observacoesAtendimento || "";
+            const atual = document.getElementById(`obs-${id}`).value;
+            const mudou = atual.trim() !== original.trim();
+            mudou ? obsAlteradas.add(id) : obsAlteradas.delete(id);
+            rascunhos.set(id, atual);
+            document.getElementById(`salvar-obs-${id}`).hidden = !mudou;
+            document.getElementById(`salvo-obs-${id}`).hidden = true;
+        }
+
+        async function salvarObservacao(id) {
+            const texto = document.getElementById(`obs-${id}`).value;
+            try {
+                await api(`/agendamento/${id}/observacoes`, { method: "PATCH", body: JSON.stringify({ texto }) });
+                const a = porId.get(id);
+                if (a) a.observacoesAtendimento = texto.trim();
+                obsAlteradas.delete(id);
+                document.getElementById(`salvar-obs-${id}`).hidden = true;
+                document.getElementById(`salvo-obs-${id}`).hidden = false;
+            } catch (e) { aviso(e.message, "erro"); }
+        }
+
+        // ===== Fluxo do balcão =====
+        async function executar(caminho, opcoes, mensagem) {
+            try {
+                await api(caminho, opcoes);
+                aviso(mensagem, "ok");
+                await carregar(true);
+            } catch (e) { aviso(e.message, "erro"); }
+        }
+
+        function confirmar(id) {
+            executar(`/agendamento/${id}/confirmar`, { method: "PATCH" }, "Horário confirmado.");
+        }
+
+        function registrarChegada(id) {
+            const a = porId.get(id);
+            executar(`/agendamento/${id}/chegada`, { method: "PATCH" }, `${a?.nomePet || "Pet"} chegou e está em processo.`);
+        }
+
+        function pedirCancelamento(id) {
+            const a = porId.get(id);
+            perguntar("Cancelar agendamento?",
+                `${a.nomePet} · ${a.nomeServico} · ${new Date(a.dataHoraInicio).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })}. O horário fica livre para outro cliente.`,
+                () => executar(`/agendamento/${id}`, { method: "DELETE" }, "Agendamento cancelado."));
+        }
+
+        function perguntar(titulo, texto, aoConfirmar) {
+            document.getElementById("cf-titulo").textContent = titulo;
+            document.getElementById("cf-texto").textContent = texto;
+            document.getElementById("cf-ok").onclick = () => { fecharModal("modal-confirmar"); aoConfirmar(); };
+            document.getElementById("modal-confirmar").style.display = "flex";
+        }
+
+        function fecharModal(id) { document.getElementById(id).style.display = "none"; }
+        document.addEventListener("keydown", e => {
+            if (e.key === "Escape") document.querySelectorAll(".modal").forEach(m => m.style.display = "none");
+        });
+
+        // ===== Pagamento =====
+        let pagamentoId = null;
+        let formaEscolhida = null;
+
+        function abrirPagamento(id) {
+            const a = porId.get(id);
+            pagamentoId = id;
+            formaEscolhida = null;
+            document.querySelectorAll(".pg-forma").forEach(b => b.setAttribute("aria-checked", "false"));
+            document.getElementById("pg-resumo").innerHTML = `${EMOJIS[a.especiePet] ?? "🐾"} ${esc(a.nomePet)} · ${esc(a.nomeServico)}<br><span style="font-weight:600;color:#64748b;">Cliente: ${esc(a.nomeTutor)}</span>`;
+            document.getElementById("pg-valor").value = Number(a.preco).toFixed(2);
+            document.getElementById("pg-preco").textContent = `Preço de tabela: ${moeda(a.preco)}. Altere se houve desconto ou acréscimo.`;
+            document.getElementById("pg-recebido").value = "";
+            document.getElementById("pg-troco").hidden = true;
+            atualizarTroco();
+            document.getElementById("modal-pagamento").style.display = "flex";
+            document.getElementById("pg-valor").focus();
+        }
+
+        function escolherForma(forma) {
+            formaEscolhida = forma;
+            document.querySelectorAll(".pg-forma").forEach(b => b.setAttribute("aria-checked", String(Number(b.dataset.forma) === forma)));
+            document.getElementById("pg-troco").hidden = forma !== 0;
+            atualizarTroco();
+        }
+
+        function atualizarTroco() {
+            const valor = parseFloat(document.getElementById("pg-valor").value) || 0;
+            const recebido = parseFloat(document.getElementById("pg-recebido").value) || 0;
+            const saida = document.getElementById("pg-troco-valor");
+            if (!recebido) { saida.textContent = ""; return; }
+            saida.textContent = recebido >= valor ? `Troco: ${moeda(recebido - valor)}` : `Faltam ${moeda(valor - recebido)}`;
+            saida.style.color = recebido >= valor ? "#047857" : "#b91c1c";
+        }
+
+        async function confirmarPagamento() {
+            const valor = parseFloat(document.getElementById("pg-valor").value);
+            if (!(valor > 0)) return aviso("Informe o valor pago.", "erro");
+            if (formaEscolhida === null) return aviso("Escolha a forma de pagamento.", "erro");
+
+            const botao = document.getElementById("pg-confirmar");
+            botao.disabled = true;
+            try {
+                await api(`/agendamento/${pagamentoId}/pagamento`, { method: "PATCH", body: JSON.stringify({ valorPago: valor, formaPagamento: formaEscolhida }) });
+                fecharModal("modal-pagamento");
+                aviso(`Pagamento de ${moeda(valor)} (${FORMAS[formaEscolhida]}) registrado. Atendimento finalizado.`, "ok");
+                await carregar(true);
+            } catch (e) { aviso(e.message, "erro"); }
+            finally { botao.disabled = false; }
+        }
+
+        // ===== Agendamento pelo balcão =====
+        const novoAg = { cliente: null, pet: null, servico: null, profissional: null, horario: null };
+        let clientesBalcao = [];
+        let servicosBalcao = [];
+        let profissionaisBalcao = [];
+        const ehBanhoTosa = s => /banho|tosa/i.test(s?.nome || "");
+        const telefoneOk = t => { const d = String(t || "").replace(/\D/g, ""); return d.length >= 10 && /[1-9]/.test(d); };
+
+        function prepararAgendamentoBalcao() {
+            criarBusca({
+                input: "ab-busca-cliente", lista: "ab-lista-cliente",
+                buscar: termo => {
+                    if (!termo) return clientesBalcao;
+                    const t = normalizar(termo), digitos = termo.replace(/\D/g, "");
+                    return clientesBalcao.filter(c => normalizar(c.nome).includes(t) ||
+                        (digitos.length >= 3 && ((c.cpf || "").includes(digitos) || (c.telefone || "").replace(/\D/g, "").includes(digitos))));
+                },
+                desenhar: (c, termo) => c.extra
+                    ? `<div class="sug-linha"><span class="sug-avatar novo">+</span><div><strong>Cadastrar novo cliente${c.nome ? ` “${esc(c.nome)}”` : ""}</strong><span class="sub">Cliente ainda sem cadastro no sistema</span></div></div>`
+                    : `<div class="sug-linha"><span class="sug-avatar">${esc(c.nome.charAt(0).toUpperCase())}</span><div><strong>${realcar(c.nome, termo)}</strong><span class="sub">${esc(telefoneOk(c.telefone) ? c.telefone : "sem telefone")}</span></div></div>`,
+                extra: termo => ({ extra: true, nome: /\d/.test(termo) ? "" : termo }),
+                escolher: c => c.extra ? abrirNovoCliente(c.nome) : escolherClienteBalcao(c)
+            });
+        }
+
+        async function abrirNovoAgendamento() {
+            Object.keys(novoAg).forEach(k => novoAg[k] = null);
+            ["ab-passo-pet", "ab-passo-servico", "ab-passo-horario", "ab-novo-cliente", "ab-novo-pet", "ab-cliente-escolhido"].forEach(id => document.getElementById(id).hidden = true);
+            document.getElementById("ab-busca-cliente-caixa").hidden = false;
+            document.getElementById("ab-busca-cliente").value = "";
+            document.getElementById("ab-obs").value = "";
+            atualizarResumoBalcao();
+            document.getElementById("modal-agendar").style.display = "flex";
+            document.getElementById("ab-busca-cliente").focus();
+            try {
+                [clientesBalcao, servicosBalcao, profissionaisBalcao] = await Promise.all([
+                    api("/tutores"), api("/Servicos"), api("/funcionarios/profissionais")
+                ]);
+            } catch (e) { aviso(e.message, "erro"); }
+        }
+
+        function abrirNovoCliente(nome) {
+            document.getElementById("ab-busca-cliente-caixa").hidden = true;
+            document.getElementById("ab-novo-cliente").hidden = false;
+            ["ab-cli-cpf", "ab-cli-tel", "ab-cli-email"].forEach(id => document.getElementById(id).value = "");
+            document.getElementById("ab-cli-nome").value = nome || "";
+            document.getElementById(nome ? "ab-cli-cpf" : "ab-cli-nome").focus();
+        }
+
+        function cancelarNovoCliente() {
+            document.getElementById("ab-novo-cliente").hidden = true;
+            document.getElementById("ab-busca-cliente-caixa").hidden = false;
+            document.getElementById("ab-busca-cliente").focus();
+        }
+
+        async function salvarNovoCliente() {
+            const dados = {
+                nome: document.getElementById("ab-cli-nome").value,
+                cpf: document.getElementById("ab-cli-cpf").value,
+                telefone: document.getElementById("ab-cli-tel").value,
+                email: document.getElementById("ab-cli-email").value
+            };
+            try {
+                const c = await api("/tutores/balcao", { method: "POST", body: JSON.stringify(dados) });
+                clientesBalcao.push(c);
+                document.getElementById("ab-novo-cliente").hidden = true;
+                aviso(`${c.nome} cadastrado(a).`, "ok");
+                escolherClienteBalcao(c);
+            } catch (e) { aviso(e.message, "erro"); }
+        }
+
+        async function escolherClienteBalcao(c) {
+            novoAg.cliente = c;
+            novoAg.pet = null;
+            const chip = document.getElementById("ab-cliente-escolhido");
+            chip.innerHTML = `<span class="sug-avatar">${esc(c.nome.charAt(0).toUpperCase())}</span><div><strong>${esc(c.nome)}</strong><span class="sub">${esc(telefoneOk(c.telefone) ? c.telefone : "sem telefone")}</span></div>
+                <button type="button" class="btn-texto" onclick="trocarClienteBalcao()">Trocar</button>`;
+            chip.hidden = false;
+            document.getElementById("ab-busca-cliente-caixa").hidden = true;
+            document.getElementById("ab-passo-pet").hidden = false;
+            await carregarPetsBalcao();
+            atualizarResumoBalcao();
+        }
+
+        function trocarClienteBalcao() {
+            novoAg.cliente = null;
+            novoAg.pet = null;
+            document.getElementById("ab-cliente-escolhido").hidden = true;
+            ["ab-passo-pet", "ab-passo-servico", "ab-passo-horario"].forEach(id => document.getElementById(id).hidden = true);
+            document.getElementById("ab-busca-cliente-caixa").hidden = false;
+            document.getElementById("ab-busca-cliente").value = "";
+            document.getElementById("ab-busca-cliente").focus();
+            atualizarResumoBalcao();
+        }
+
+        async function carregarPetsBalcao(idSelecionar) {
+            const caixa = document.getElementById("ab-pets");
+            caixa.innerHTML = "<p class='pg-dica'>Carregando pets...</p>";
+            try {
+                const pets = await api(`/Pets/tutor/${novoAg.cliente.id}`);
+                caixa.innerHTML = pets.map(p => `
+                    <button type="button" class="ab-opcao" data-id="${p.id}" aria-pressed="false">
+                        <span class="ab-icone">${EMOJIS[p.especie] ?? "🐾"}</span><span><strong>${esc(p.nome)}</strong><span class="sub">${esc([ESPECIES[p.especie], p.raca].filter(Boolean).join(" · "))}</span></span>
+                    </button>`).join("") +
+                    `<button type="button" class="ab-opcao nova" onclick="abrirNovoPet()"><span class="ab-icone">+</span><span><strong>Novo pet</strong><span class="sub">Cadastrar agora</span></span></button>`;
+                caixa.querySelectorAll(".ab-opcao[data-id]").forEach(b => b.onclick = () => escolherPetBalcao(pets.find(p => p.id === Number(b.dataset.id))));
+                const alvo = idSelecionar ? pets.find(p => p.id === idSelecionar) : (pets.length === 1 ? pets[0] : null);
+                if (alvo) escolherPetBalcao(alvo);
+                else if (!pets.length) abrirNovoPet();
+            } catch (e) { caixa.innerHTML = `<p class="pg-dica">${esc(e.message)}</p>`; }
+        }
+
+        function abrirNovoPet() {
+            document.getElementById("ab-novo-pet").hidden = false;
+            ["ab-pet-nome", "ab-pet-raca"].forEach(id => document.getElementById(id).value = "");
+            document.getElementById("ab-pet-nome").focus();
+        }
+
+        async function salvarNovoPet() {
+            const nome = document.getElementById("ab-pet-nome").value.trim();
+            if (!nome) return aviso("Informe o nome do pet.", "erro");
+            const umAno = new Date(); umAno.setFullYear(umAno.getFullYear() - 1);
+            try {
+                const r = await api("/pets", { method: "POST", body: JSON.stringify({
+                    nome,
+                    especie: parseInt(document.getElementById("ab-pet-especie").value),
+                    sexo: parseInt(document.getElementById("ab-pet-sexo").value),
+                    raca: document.getElementById("ab-pet-raca").value.trim() || "SRD",
+                    dataNascimento: umAno.toISOString().slice(0, 10) + "T00:00:00", // aproximada: o tutor pode corrigir depois
+                    pesoKg: 0,
+                    tutorId: novoAg.cliente.id
+                }) });
+                document.getElementById("ab-novo-pet").hidden = true;
+                aviso(`${nome} cadastrado(a).`, "ok");
+                await carregarPetsBalcao(r.id);
+            } catch (e) { aviso(e.message, "erro"); }
+        }
+
+        function marcarOpcao(caixaId, id) {
+            document.querySelectorAll(`#${caixaId} .ab-opcao[data-id]`).forEach(b => b.setAttribute("aria-pressed", String(Number(b.dataset.id) === id)));
+        }
+
+        function escolherPetBalcao(p) {
+            novoAg.pet = p;
+            marcarOpcao("ab-pets", p.id);
+            document.getElementById("ab-passo-servico").hidden = false;
+            desenharServicosBalcao();
+            atualizarResumoBalcao();
+        }
+
+        function desenharServicosBalcao() {
+            const caixa = document.getElementById("ab-servicos");
+            caixa.innerHTML = servicosBalcao.map(s => `
+                <button type="button" class="ab-opcao" data-id="${s.id}" aria-pressed="${novoAg.servico?.id === s.id}" onclick="escolherServicoBalcao(${s.id})">
+                    <span><strong>${esc(s.nome)}</strong><span class="sub">${moeda(s.preco)} · ${s.duracaoMinutos} min</span></span>
+                </button>`).join("");
+        }
+
+        function escolherServicoBalcao(id) {
+            const anterior = novoAg.servico;
+            novoAg.servico = servicosBalcao.find(s => s.id === id);
+            marcarOpcao("ab-servicos", id);
+            // Trocar entre banho/tosa e veterinária muda quem pode atender
+            if (!anterior || ehBanhoTosa(anterior) !== ehBanhoTosa(novoAg.servico)) novoAg.profissional = null;
+            novoAg.horario = null;
+            desenharProfissionaisBalcao();
+            atualizarResumoBalcao();
+        }
+
+        function desenharProfissionaisBalcao() {
+            const cargo = ehBanhoTosa(novoAg.servico) ? 3 : 0;
+            const lista = profissionaisBalcao.filter(f => f.cargo === cargo);
+            const caixa = document.getElementById("ab-profissionais");
+            if (!lista.length) { caixa.innerHTML = "<p class='pg-dica'>Nenhum profissional disponível para este serviço.</p>"; return; }
+            caixa.innerHTML = lista.map(f => `
+                <button type="button" class="ab-opcao" data-id="${f.id}" aria-pressed="${novoAg.profissional?.id === f.id}" onclick="escolherProfissionalBalcao(${f.id})">
+                    <span class="sug-avatar">${esc(f.nome.charAt(0))}</span><span><strong>${esc(f.nome)}</strong><span class="sub">${cargo === 3 ? "Banho e Tosa" : "Veterinário(a)"}</span></span>
+                </button>`).join("");
+            if (lista.length === 1) escolherProfissionalBalcao(lista[0].id);
+        }
+
+        function escolherProfissionalBalcao(id) {
+            novoAg.profissional = profissionaisBalcao.find(f => f.id === id);
+            novoAg.horario = null;
+            marcarOpcao("ab-profissionais", id);
+            const passo = document.getElementById("ab-passo-horario");
+            const primeiraVez = passo.hidden;
+            passo.hidden = false;
+            if (primeiraVez || !document.getElementById("ab-data").value) definirDataAgendamento(0);
+            else carregarHorariosBalcao();
+            atualizarResumoBalcao();
+        }
+
+        function definirDataAgendamento(diasAFrente) {
+            const d = new Date(); d.setDate(d.getDate() + diasAFrente);
+            if (d.getDay() === 0) d.setDate(d.getDate() + 1); // domingo fechado: pula para segunda
+            document.getElementById("ab-data").value = iso(d);
+            carregarHorariosBalcao();
+        }
+
+        async function carregarHorariosBalcao() {
+            const caixa = document.getElementById("ab-horarios");
+            const data = document.getElementById("ab-data").value;
+            novoAg.horario = null;
+            atualizarResumoBalcao();
+            if (!data || !novoAg.servico || !novoAg.profissional) return;
+            caixa.innerHTML = "<p class='pg-dica'>Buscando horários livres...</p>";
+            try {
+                const horarios = await api(`/agendamento/horarios-disponiveis?data=${data}&idServico=${novoAg.servico.id}&idFuncionario=${novoAg.profissional.id}`);
+                caixa.innerHTML = horarios.length
+                    ? horarios.map(h => `<button type="button" class="ab-hora" data-h="${h}" aria-pressed="false" onclick="escolherHorarioBalcao('${h}')">${hora(h)}</button>`).join("")
+                    : `<p class="pg-dica">${new Date(data + "T12:00").getDay() === 0 ? "Domingo não há expediente." : "Nenhum horário livre neste dia com este profissional. Tente outro dia ou profissional."}</p>`;
+            } catch (e) { caixa.innerHTML = `<p class="pg-dica">${esc(e.message)}</p>`; }
+        }
+
+        function escolherHorarioBalcao(h) {
+            novoAg.horario = h;
+            document.querySelectorAll(".ab-hora").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.h === h)));
+            atualizarResumoBalcao();
+        }
+
+        function atualizarResumoBalcao() {
+            const { cliente, pet, servico, profissional, horario } = novoAg;
+            const resumo = document.getElementById("ab-resumo");
+            const pronto = cliente && pet && servico && profissional && horario;
+            document.getElementById("ab-confirmar").disabled = !pronto;
+            if (!cliente) { resumo.textContent = "Escolha o cliente para começar."; return; }
+            const partes = [`<strong>${esc(cliente.nome)}</strong>`];
+            if (pet) partes.push(esc(pet.nome));
+            if (servico) partes.push(`${esc(servico.nome)} (${moeda(servico.preco)})`);
+            if (profissional) partes.push(`com ${esc(profissional.nome)}`);
+            if (horario) partes.push(`<strong>${new Date(horario).toLocaleString("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</strong>`);
+            resumo.innerHTML = partes.join(" · ");
+        }
+
+        async function confirmarAgendamentoBalcao() {
+            const botao = document.getElementById("ab-confirmar");
+            botao.disabled = true;
+            try {
+                await api("/agendamento", { method: "POST", body: JSON.stringify({
+                    idPet: novoAg.pet.id,
+                    idServico: novoAg.servico.id,
+                    idFuncionario: novoAg.profissional.id,
+                    dataHoraInicio: novoAg.horario,
+                    observacoes: document.getElementById("ab-obs").value.trim()
+                }) });
+                fecharModal("modal-agendar");
+                aviso(`Agendado: ${novoAg.pet.nome}, ${hora(novoAg.horario)} de ${new Date(novoAg.horario).toLocaleDateString("pt-BR")}.`, "ok", 6000);
+                // Mostra na agenda o dia do agendamento recém-criado
+                dataRef = new Date(novoAg.horario);
+                trocarAba("agendados");
+                carregar();
+            } catch (e) {
+                aviso(e.message, "erro");
+                botao.disabled = false;
+            }
+        }
+    </script>
+    <script src="ui.js"></script>
+</body>
+</html>
