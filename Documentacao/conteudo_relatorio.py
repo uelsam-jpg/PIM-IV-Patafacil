@@ -80,6 +80,9 @@ INTRODUCAO = [
           "construção do sistema seguiu um ciclo iterativo e incremental orientado pelo Scrum (SCHWABER; "
           "SUTHERLAND, 2020), e cada incremento foi verificado por testes automatizados e por testes de "
           "integração executados sobre a aplicação em funcionamento."),
+    ("p", "O código-fonte completo da solução, com as aplicações web e mobile, as APIs, o script do banco de "
+          "dados, os testes automatizados e os arquivos de implantação, está disponível no repositório público "
+          "do projeto: <<https://github.com/uelsam-jpg/PIM-IV-Patafacil>>."),
     ("p", "O trabalho está organizado conforme as etapas do manual do PIM IV. Os capítulos 2 a 4 tratam da "
           "organização, do planejamento da solução e da responsabilidade social. Os capítulos 5 a 8 descrevem "
           "a aplicação web, o aplicativo mobile, a arquitetura de software e o banco de dados. Os capítulos 9 "

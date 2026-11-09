@@ -55,14 +55,30 @@ def formatar(par, alinhamento=WD_ALIGN_PARAGRAPH.JUSTIFY, entrelinhas=1.5, recuo
     return par
 
 
+def link(par, url, tamanho=12, nome=FONTE):
+    """Hiperlink clicável no Word e no PDF exportado (texto = o próprio endereço)."""
+    r_id = par.part.relate_to(url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
+                              is_external=True)
+    hyperlink = OxmlElement("w:hyperlink")
+    hyperlink.set(qn("r:id"), r_id)
+    run = par.add_run(url)
+    definir_fonte(run, tamanho, nome=nome)
+    run.font.underline = True
+    hyperlink.append(run._element)
+    par._p.append(hyperlink)
+
+
 def escrever(par, texto, tamanho=12, negrito=None, nome=FONTE):
-    """Escreve o texto no parágrafo; trechos entre ** ** saem em negrito e entre __ __ em itálico."""
+    """Escreve o texto no parágrafo; trechos entre ** ** saem em negrito, entre __ __ em itálico
+    e entre << >> como link clicável."""
     import re
 
-    for parte in re.split(r"(\*\*.+?\*\*|__.+?__)", texto):
+    for parte in re.split(r"(\*\*.+?\*\*|__.+?__|<<.+?>>)", texto):
         if not parte:
             continue
-        if parte.startswith("**"):
+        if parte.startswith("<<"):
+            link(par, parte[2:-2], tamanho, nome)
+        elif parte.startswith("**"):
             definir_fonte(par.add_run(parte[2:-2]), tamanho, True, nome=nome)
         elif parte.startswith("__"):
             definir_fonte(par.add_run(parte[2:-2]), tamanho, negrito, True, nome=nome)
