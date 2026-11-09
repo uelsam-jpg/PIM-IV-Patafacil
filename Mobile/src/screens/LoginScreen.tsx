@@ -51,7 +51,6 @@ export function LoginScreen({ navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.hero}>
-          <Text style={styles.logo}>🐾</Text>
           <Text style={styles.titulo}>PataFácil</Text>
           <Text style={styles.subtitulo}>
             O melhor cuidado para o seu melhor amigo, agora na palma da mão.
@@ -109,9 +108,6 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: "center",
     marginBottom: 28,
-  },
-  logo: {
-    fontSize: 64,
   },
   titulo: {
     fontSize: 32,

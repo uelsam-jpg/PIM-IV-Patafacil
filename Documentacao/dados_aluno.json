@@ -1,9 +1,17 @@
 {
-  "_instrucoes": "Preencha os campos abaixo e rode: python Documentacao/gerar_relatorio.py  (para trabalho em grupo, acrescente um item por integrante em 'alunos')",
+  "_instrucoes": "Preencha os campos abaixo e rode: python Documentacao/gerar_relatorio.py  (para trabalho em grupo, acrescente um item por integrante em 'alunos'). 'orientador_rotulo' é opcional (padrão: Orientador(a)).",
   "alunos": [
-    { "nome": "NOME DO ALUNO", "ra": "RA" }
+    {
+      "nome": "Samuel Silva Nascimento",
+      "ra": "R673316"
+    },
+    {
+      "nome": "Davi Costa Cerqueira",
+      "ra": "R568040"
+    }
   ],
-  "orientador": "NOME DO(A) ORIENTADOR(A)",
-  "cidade": "CIDADE",
+  "orientador_rotulo": "Orientador(a)",
+  "orientador": "Edy Hayashida",
+  "cidade": "Santana de Parnaíba",
   "ano": "2026"
 }

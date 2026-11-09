@@ -142,7 +142,6 @@ export function MeusAgendamentosScreen() {
         }
         ListEmptyComponent={
           <EmptyState
-            icon="📅"
             title="Nenhum agendamento"
             subtitle="Agende um serviço na aba Agendar."
           />

@@ -44,6 +44,11 @@ function formatarHora(iso: string): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+/** "segunda-feira, 09 de novembro" -> "Segunda-feira, 09 de novembro" */
+function maiusculaInicial(texto: string): string {
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+}
+
 function formatarDataExtensa(data: Date): string {
   return data.toLocaleDateString("pt-BR", {
     weekday: "long",
@@ -278,7 +283,7 @@ export function AgendarScreen() {
         {passo === 1 && (
           <>
             <Text style={styles.categoria}>
-              {servicoSelecionado ? "Escolhido ✓" : "Escolha um serviço"}
+              {servicoSelecionado ? "Escolhido" : "Escolha um serviço"}
             </Text>
             {servicos.map((s) => (
               <TouchableOpacity
@@ -289,7 +294,7 @@ export function AgendarScreen() {
                 <View style={styles.optionInfo}>
                   <Text style={styles.optionTexto}>{s.nome}</Text>
                   <Text style={styles.optionSub}>
-                    {s.duracaoMinutos} min · R$ {s.preco.toFixed(2)}
+                    {s.duracaoMinutos} min · R$ {s.preco.toFixed(2).replace(".", ",")}
                   </Text>
                 </View>
                 {servicoSelecionado?.id === s.id && (
@@ -304,10 +309,10 @@ export function AgendarScreen() {
         {passo === 2 && (
           <>
             <Text style={styles.categoria}>
-              {isPetShop ? "🛁 Pet Shop — Banho e Tosa" : "🩺 Veterinária — Veterinários"}
+              {isPetShop ? "Pet Shop — Banho e Tosa" : "Veterinária — Veterinários"}
             </Text>
             {profissionaisFiltrados.length === 0 ? (
-              <EmptyState icon="👩‍⚕️" title="Nenhum profissional disponível" />
+              <EmptyState title="Nenhum profissional disponível" />
             ) : (
               profissionaisFiltrados.map((f) => (
                 <TouchableOpacity
@@ -315,7 +320,9 @@ export function AgendarScreen() {
                   style={[styles.optionCard, profissionalSelecionado?.id === f.id && styles.optionCardAtivo]}
                   onPress={() => setProfissionalSelecionado(f)}
                 >
-                  <Text style={styles.optionEmoji}>{isPetShop ? "💇" : "👩‍⚕️"}</Text>
+                  <View style={styles.avatar}>
+                    <Text style={styles.avatarTexto}>{f.nome.charAt(0).toUpperCase()}</Text>
+                  </View>
                   <Text style={styles.optionTexto}>{f.nome}</Text>
                   {profissionalSelecionado?.id === f.id && (
                     <Ionicons name="checkmark-circle" size={22} color={colors.primary} />
@@ -334,7 +341,7 @@ export function AgendarScreen() {
               onPress={() => setMostrarPickerData(true)}
             >
               <Ionicons name="calendar-outline" size={22} color={colors.primary} />
-              <Text style={styles.dateButtonTexto}>{formatarDataExtensa(dataSelecionada)}</Text>
+              <Text style={styles.dateButtonTexto}>{maiusculaInicial(formatarDataExtensa(dataSelecionada))}</Text>
             </TouchableOpacity>
 
             {mostrarPickerData && (
@@ -353,7 +360,6 @@ export function AgendarScreen() {
               <>
                 {horarios.length === 0 ? (
                   <EmptyState
-                    icon="🕐"
                     title="Nenhum horário disponível"
                     subtitle="Tente outra data."
                   />
@@ -535,6 +541,20 @@ const styles = StyleSheet.create({
     fontSize: 24,
     marginRight: 12,
   },
+  avatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  avatarTexto: {
+    color: colors.white,
+    fontWeight: "700",
+    fontSize: 15,
+  },
   optionInfo: {
     flex: 1,
   },
@@ -564,7 +584,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.text,
     marginLeft: 10,
-    textTransform: "capitalize",
   },
   horariosGrid: {
     flexDirection: "row",

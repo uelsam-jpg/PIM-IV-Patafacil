@@ -8,10 +8,10 @@ interface Props {
   subtitle?: string;
 }
 
-export function EmptyState({ icon = "🐾", title, subtitle }: Props) {
+export function EmptyState({ icon, title, subtitle }: Props) {
   return (
     <View style={styles.container}>
-      <Text style={styles.icon}>{icon}</Text>
+      {icon ? <Text style={styles.icon}>{icon}</Text> : null}
       <Text style={styles.title}>{title}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
     </View>

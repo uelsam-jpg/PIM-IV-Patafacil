@@ -25,8 +25,8 @@ RESUMO = (
     "ações de acessibilidade, diversidade e responsabilidade social. No balcão, o sistema registra a chegada do "
     "cliente e o pagamento, emite automaticamente a ordem de serviço em A4, PDF ou cupom para impressora "
     "térmica e controla o recebimento de mercadorias com nota fiscal, validade, margem de lucro e cadastro de "
-    "fornecedores. A validação reuniu 28 testes unitários automatizados, verificações de ponta a ponta sobre a "
-    "API e testes diretos dos objetos do banco, todos aprovados. Conclui-se que a solução atende aos objetivos "
+    "fornecedores. A validação reuniu 28 testes unitários automatizados, 53 verificações de ponta a ponta sobre "
+    "a API e testes diretos dos objetos do banco, todos aprovados. Conclui-se que a solução atende aos objetivos "
     "propostos, elimina os conflitos de agenda, integra as vendas ao estoque e oferece ao gestor informações "
     "para decidir com base em dados."
 )
@@ -48,7 +48,7 @@ ABSTRACT = (
     "as well as accessibility, diversity and social responsibility actions. At the front desk, the system records "
     "the customer's arrival and payment, automatically issues the service order as an A4 page, a PDF file or a "
     "thermal printer receipt, and manages the receipt of goods with invoice, expiry date, profit margin and "
-    "supplier registration. Validation comprised 28 automated unit tests, end-to-end checks on the API and "
+    "supplier registration. Validation comprised 28 automated unit tests, 53 end-to-end checks on the API and "
     "direct tests of the database objects, all of which passed. "
     "It is concluded that the solution meets the proposed objectives, eliminates scheduling conflicts, "
     "integrates sales with inventory and gives the manager information to make data-driven decisions."
@@ -329,39 +329,36 @@ def desenvolvimento(dados):
               "movimento previsto para a semana e sugestões de promoção geradas a partir da validade dos lotes, "
               "do estoque parado e do movimento previsto. Cada gráfico tem uma tabela equivalente, para quem "
               "prefere ler os números."),
-        ("fig", "web_dashboard.png", "Visão geral da equipe, com indicadores, gráficos do mês e previsão de demanda", 11.0),
-        ("p", "O atendente trabalha na agenda do balcão, apresentada na Figura 4. A agenda é navegada por dia "
+        ("fig", "web_dashboard.png", "Visão geral da equipe, com indicadores, gráficos do mês e previsão de demanda", 9.5),
+        ("p", "O atendente trabalha na agenda do balcão, reproduzida no Apêndice B. A agenda é navegada por dia "
               "ou por semana e organizada em abas que acompanham o atendimento: agendados, em processo, "
               "finalizados e cancelados. Cada cartão mostra o animal, o cliente com telefone e atalho para o "
               "WhatsApp, o serviço, o profissional e um campo de observações da equipe. O botão \"Cliente "
               "chegou\" leva o atendimento para a aba em processo, e \"Finalizar e receber\" registra o valor, "
               "a forma de pagamento e o troco. O balcão também agenda serviços para clientes que chegam sem "
               "cadastro prévio."),
-        ("fig", "web_atendente.png", "Agenda do balcão com um atendimento em processo", 11.0),
         ("p", "Para cada agendamento o sistema gera automaticamente uma ordem de serviço, numerada pelo próprio "
               "atendimento, que reúne os dados do cliente e do animal, o serviço, o profissional, as "
-              "observações e o pagamento. A tela de ordens de serviço, na Figura 5, lista as ordens do dia, da "
+              "observações e o pagamento. A tela de ordens de serviço, também reproduzida no Apêndice B, lista as ordens do dia, da "
               "semana ou do mês, com busca e filtro por situação."),
-        ("fig", "web_ordens.png", "Lista de ordens de serviço da semana", 11.0),
-        ("p", "Ao abrir uma ordem, escolhe-se o formato, como mostra a Figura 6: folha A4, que pode ser "
+        ("p", "Ao abrir uma ordem, escolhe-se o formato, como mostra a Figura 4: folha A4, que pode ser "
               "impressa ou baixada como arquivo PDF para envio ao cliente, ou cupom de 80 mm ou 58 mm para "
               "impressoras térmicas, cuja altura é calculada pelo conteúdo. Um atalho abre o WhatsApp do "
               "cliente com o resumo do atendimento."),
-        ("fig", "web_os_a4.png", "Ordem de serviço no formato A4, pronta para impressão ou PDF", 11.0),
-        ("p", "Na tela de estoque e vendas, a aba de entrada de mercadoria, na Figura 7, registra o recebimento "
+        ("fig", "web_os_a4.png", "Ordem de serviço no formato A4, pronta para impressão ou PDF", 9.5),
+        ("p", "Na tela de estoque e vendas, a aba de entrada de mercadoria, apresentada no Apêndice B, registra o recebimento "
               "do fornecedor com número da nota, validade do lote, quantidade, custo e preço de venda. O "
               "sistema sugere o preço pela margem de lucro sobre a venda e mostra o lucro por unidade. O "
               "produto pode ser escolhido no catálogo ou cadastrado na própria entrada, e o fornecedor é "
               "escolhido entre os já cadastrados, com o último fornecedor do produto preenchido "
               "automaticamente, ou cadastrado na hora, com CNPJ, telefone e e-mail. Os alertas do topo indicam "
               "produtos no ponto de reposição e lotes que vencem em até 30 dias."),
-        ("fig", "web_entrada.png", "Entrada de mercadoria com alertas de reposição e de validade", 11.0),
         ("p", "O veterinário trabalha no consultório, onde vê a fila de pacientes e registra o prontuário, e o "
               "gerente dispõe ainda do relatório de faturamento e do cadastro da equipe. Todos os perfis têm "
               "uma caixa de e-mail com as mensagens que o sistema enviou, como confirmações e cancelamentos. "
               "As demais telas constam do Apêndice B."),
         ("h2", "5.6 Integração entre módulos"),
-        ("p", "Os módulos trocam informações de forma automática. A Figura 8 detalha a criação de um "
+        ("p", "Os módulos trocam informações de forma automática. A Figura 5 detalha a criação de um "
               "agendamento: o serviço de negócio valida as regras, grava o registro, consulta o microsserviço "
               "de inteligência artificial para anotar o risco de cancelamento e dispara a notificação por "
               "e-mail, simulada no ambiente de desenvolvimento. A consulta à inteligência artificial tem "
@@ -375,9 +372,11 @@ def desenvolvimento(dados):
               "regras de agendamento (RN01, RN02, RN03, RN04 e RN10), a chegada e o pagamento no balcão, a posse "
               "dos dados pelo tutor, as vendas com baixa de estoque (RN15), a entrada de mercadoria com o "
               "cálculo do preço pela margem e o armazenamento de senhas com BCrypt. Os testes dispensam o banco "
-              "de dados, pois os repositórios são simulados. Complementarmente, foram executadas verificações "
-              "de ponta a ponta sobre a API em funcionamento, cobrindo as regras de negócio, as restrições de "
-              "acesso e o cadastro de fornecedores; todos os testes foram aprovados."),
+              "de dados, pois os repositórios são simulados. Complementarmente, o teste final executou 53 "
+              "verificações de ponta a ponta sobre a API em funcionamento, que cobriram as regras de negócio, "
+              "as restrições de acesso de cada perfil, o fluxo do balcão, as vendas, a entrada de mercadoria e "
+              "o cadastro de fornecedores, e abriu as 15 telas da aplicação web com o perfil correspondente, sem "
+              "nenhum erro de execução no navegador; todos os testes foram aprovados."),
 
         # ------------------------------------------------------------------ Etapa 5
         ("h1", "6 DESENVOLVIMENTO DA SOLUÇÃO MOBILE"),
@@ -385,7 +384,7 @@ def desenvolvimento(dados):
               "2026) com a plataforma Expo (EXPO, 2026) e a linguagem TypeScript, o que permite gerar versões "
               "para Android e iOS a partir do mesmo código."),
         ("h2", "6.1 Telas principais"),
-        ("p", "O aplicativo possui oito telas. As Figuras 9 e 10 reúnem as principais, capturadas com o "
+        ("p", "O aplicativo possui oito telas. A Figura 6 reúne as principais, capturadas com o "
               "aplicativo em execução e conectado à API. A tela inicial oferece atalhos para as funções mais "
               "usadas; a tela de animais lista os pets do tutor e dá acesso ao cadastro; a tela de consultas "
               "mostra os agendamentos com o respectivo status e a opção de cancelamento."),
@@ -393,12 +392,10 @@ def desenvolvimento(dados):
          "Telas de login, início, pets e consultas do aplicativo", 3.5),
         ("p", "O agendamento é conduzido por um assistente de cinco passos: escolha do animal, do serviço e "
               "do profissional, seleção da data e de um dos horários livres informados pela API e, por fim, "
-              "o resumo para confirmação."),
-        ("fig", ["mob_agendar_1.png", "mob_agendar_2.png", "mob_agendar_4.png", "mob_agendar_5.png"],
-         "Passos do assistente de agendamento no aplicativo", 3.5),
+              "o resumo para confirmação, como mostra o Apêndice B."),
         ("h2", "6.2 Fluxo de navegação"),
         ("p", "A navegação combina uma pilha de telas para o acesso e abas inferiores para a área logada, "
-              "conforme a Figura 11. Ao abrir o aplicativo, verifica-se se há sessão salva: em caso negativo, "
+              "conforme a Figura 7. Ao abrir o aplicativo, verifica-se se há sessão salva: em caso negativo, "
               "exibem-se as telas de login e de cadastro; em caso positivo, o usuário segue diretamente para "
               "o painel, cujas abas dão acesso a início, pets, agendar, consultas e perfil."),
         ("fig", "dia_navegacao.png", "Fluxo de navegação do aplicativo", 8.0),
@@ -432,7 +429,7 @@ def desenvolvimento(dados):
               "um núcleo único de regras de negócio exposto por APIs."),
         ("h2", "7.1 Orientação a objetos"),
         ("p", "O domínio foi modelado com os pilares da orientação a objetos, representados no diagrama de "
-              "classes da Figura 12. A classe abstrata Pessoa reúne os atributos comuns a tutores e "
+              "classes da Figura 8. A classe abstrata Pessoa reúne os atributos comuns a tutores e "
               "funcionários (abstração), que são suas especializações (herança). O método GetPerfil é "
               "implementado de forma distinta em cada subclasse (polimorfismo), o que permite ao serviço de "
               "autenticação obter o perfil de qualquer usuário sem conhecer o seu tipo concreto."),
@@ -487,18 +484,18 @@ public void Concluir()
               "O projeto seguiu as etapas clássicas de modelagem conceitual, lógica e física (ELMASRI; "
               "NAVATHE, 2018)."),
         ("h2", "8.1 Modelo entidade-relacionamento"),
-        ("p", "A Figura 13 apresenta o modelo entidade-relacionamento (MER) do núcleo do negócio, com dez "
-              "entidades e as duas tabelas de apoio. Um tutor possui vários animais; cada agendamento associa "
+        ("p", "A Figura 9 apresenta o modelo entidade-relacionamento (MER) completo, com as quinze tabelas do "
+              "banco. Um tutor possui vários animais; cada agendamento associa "
               "um animal, um serviço e um profissional; o histórico clínico pertence a um animal e pode ter "
               "sido originado por um agendamento; cada produto tem um registro de estoque; e uma venda é "
               "composta por itens, cada qual referente a um produto."),
-        ("p", "Nas últimas Sprints o modelo ganhou três tabelas, descritas no Quadro 7: emails, que guarda as "
+        ("p", "Nas últimas Sprints o modelo ganhou três tabelas: emails, que guarda as "
               "mensagens enviadas pelo sistema para a caixa de e-mail de cada usuário; entradas_estoque, em "
               "que cada recebimento de mercadoria forma um lote com nota fiscal, fornecedor, validade, custo e "
               "preço aplicado, ligado ao produto e ao funcionário que recebeu; e fornecedores, com nome único, "
               "CNPJ, telefone e e-mail. A entrada guarda o nome do fornecedor, o que preserva o histórico "
-              "mesmo que o cadastro seja alterado depois."),
-        ("fig", "dia_mer.png", "Modelo entidade-relacionamento do banco de dados", 15.0),
+              "mesmo que o cadastro seja alterado depois; por isso a ligação aparece tracejada no MER."),
+        ("fig", "dia_mer.png", "Modelo entidade-relacionamento do banco de dados", 12.5),
         ("h2", "8.2 Modelo lógico"),
         ("p", "No modelo lógico, cada entidade foi convertida em uma relação com chave primária numérica e os "
               "relacionamentos, em chaves estrangeiras, como resume o Quadro 7. As relações estão na terceira "
@@ -587,7 +584,7 @@ public void Concluir()
               "equipe para manter servidores. Os artefatos de containers e de automação já fazem parte do "
               "repositório do projeto; a contratação do provedor é a etapa seguinte à entrega."),
         ("h2", "9.1 Arquitetura em nuvem"),
-        ("p", "A arquitetura de referência, na Figura 14, utiliza serviços gerenciados. O frontend é "
+        ("p", "A arquitetura de referência, na Figura 10, utiliza serviços gerenciados. O frontend é "
               "distribuído como conteúdo estático; a API e o microsserviço de inteligência artificial "
               "executam em containers; e o banco de dados é um serviço gerenciado, acessível somente pela "
               "rede interna. O aplicativo e o navegador comunicam-se com a API por HTTPS."),
@@ -615,7 +612,7 @@ public void Concluir()
               "produção."),
         ("h2", "9.4 Pipeline de CI/CD"),
         ("p", "A integração e a entrega contínuas, práticas centrais da cultura DevOps (KIM et al., 2018), "
-              "foram automatizadas com o GitHub Actions, como ilustra a Figura 15. A cada envio de código, o "
+              "foram automatizadas com o GitHub Actions, como ilustra a Figura 11. A cada envio de código, o "
               "pipeline compila a API, executa os 28 testes unitários e valida o microsserviço em Python. "
               "Somente se essas etapas forem aprovadas, e apenas na ramificação principal, as imagens Docker "
               "são construídas e publicadas no registro, identificadas pelo código da versão, ficando "
@@ -659,45 +656,45 @@ public void Concluir()
               "do uso do sistema pela equipe do balcão, e foram atendidas na Sprint 7."),
         ("quadro", "Product Backlog",
          ["ID", "História de usuário", "Prior.", "Sprint"],
-         [["PB01", "Como usuário, quero me autenticar para acessar meu painel com segurança", "1", "1"],
-          ["PB02", "Como tutor, quero me cadastrar para criar minha conta", "1", "1"],
-          ["PB03", "Como tutor, quero cadastrar meus pets para agendar serviços para eles", "1", "2"],
-          ["PB04", "Como tutor, quero agendar serviços em passos simples para reservar horário sem telefonar", "2", "2"],
-          ["PB05", "Como estabelecimento, quero impedir conflito de horário do profissional (RN01)", "2", "2"],
-          ["PB06", "Como estabelecimento, quero limitar a agenda ao expediente e calcular a duração (RN03, RN10)", "2", "2"],
+         [["PB01", "Como usuário, quero me autenticar com segurança", "1", "1"],
+          ["PB02", "Como tutor, quero criar minha conta", "1", "1"],
+          ["PB03", "Como tutor, quero cadastrar meus pets", "1", "2"],
+          ["PB04", "Como tutor, quero agendar serviços em passos simples", "2", "2"],
+          ["PB05", "Como estabelecimento, quero impedir conflito de horário (RN01)", "2", "2"],
+          ["PB06", "Como estabelecimento, quero agenda no expediente e duração automática (RN03, RN10)", "2", "2"],
           ["PB07", "Como tutor, quero cancelar on-line com antecedência (RN02)", "2", "3"],
-          ["PB08", "Como atendente, quero confirmar e concluir atendimentos em etapas travadas (RN04)", "3", "3"],
-          ["PB09", "Como veterinário, quero registrar o prontuário para manter o histórico clínico", "3", "3"],
-          ["PB10", "Como atendente, quero registrar vendas com carrinho de produtos", "4", "4"],
-          ["PB11", "Como estabelecimento, quero baixar o estoque a cada venda e ser alertado da reposição (RN15)", "4", "4"],
-          ["PB12", "Como gerente, quero relatórios e indicadores para decidir com base em dados", "5", "5"],
-          ["PB13", "Como gerente, quero cadastrar a equipe e controlar os acessos", "5", "5"],
+          ["PB08", "Como atendente, quero confirmar e concluir em etapas travadas (RN04)", "3", "3"],
+          ["PB09", "Como veterinário, quero registrar o prontuário", "3", "3"],
+          ["PB10", "Como atendente, quero vender produtos com carrinho", "4", "4"],
+          ["PB11", "Como estabelecimento, quero baixa de estoque e alerta de reposição (RN15)", "4", "4"],
+          ["PB12", "Como gerente, quero relatórios e indicadores", "5", "5"],
+          ["PB13", "Como gerente, quero cadastrar a equipe e controlar acessos", "5", "5"],
           ["PB14", "Como gerente, quero prever demanda e risco de cancelamento", "6", "6"],
-          ["PB15", "Como tutor, quero usar um aplicativo no celular para agendar de qualquer lugar", "6", "6"],
-          ["PB16", "Como pessoa surda, quero conteúdo em Libras para usar o sistema com autonomia", "7", "6"],
-          ["PB17", "Como equipe técnica, quero containers e pipeline para implantar com segurança", "7", "6"],
-          ["PB18", "Como atendente, quero registrar a chegada do cliente e receber o pagamento com troco", "3", "7"],
-          ["PB19", "Como usuário, quero uma caixa de e-mail com as mensagens enviadas pelo sistema", "5", "7"],
-          ["PB20", "Como atendente, quero registrar a entrada de mercadoria com nota, validade e margem de lucro", "4", "7"],
-          ["PB21", "Como atendente, quero escolher um fornecedor cadastrado ou cadastrar um novo na hora", "4", "7"],
-          ["PB22", "Como atendente, quero emitir a ordem de serviço em A4, PDF ou impressora térmica", "3", "7"],
-          ["PB23", "Como gerente, quero gráficos do mês e sugestões de promoção na visão geral", "5", "7"],
-          ["PB24", "Como usuário, quero uma interface padronizada e de leitura confortável", "6", "7"]],
+          ["PB15", "Como tutor, quero agendar pelo celular", "6", "6"],
+          ["PB16", "Como pessoa surda, quero conteúdo em Libras", "7", "6"],
+          ["PB17", "Como equipe técnica, quero containers e pipeline", "7", "6"],
+          ["PB18", "Como atendente, quero registrar chegada e pagamento com troco", "3", "7"],
+          ["PB19", "Como usuário, quero uma caixa de e-mail do sistema", "5", "7"],
+          ["PB20", "Como atendente, quero registrar entrada com nota, validade e margem", "4", "7"],
+          ["PB21", "Como atendente, quero escolher ou cadastrar o fornecedor na hora", "4", "7"],
+          ["PB22", "Como atendente, quero emitir a ordem de serviço (A4, PDF ou térmica)", "3", "7"],
+          ["PB23", "Como gerente, quero gráficos do mês e sugestões de promoção", "5", "7"],
+          ["PB24", "Como usuário, quero uma interface padronizada e confortável", "6", "7"]],
          [1.4, 11.2, 1.6, 1.8], 9),
         ("h2", "10.3 Sprint Backlog e cronograma das Sprints"),
-        ("p", "O trabalho foi distribuído em sete Sprints, totalizando catorze semanas. No planejamento de cada "
+        ("p", "O trabalho foi distribuído em sete Sprints de duas semanas, de 3 de agosto a 6 de novembro de 2026. No planejamento de cada "
               "Sprint, as histórias selecionadas foram decompostas em tarefas técnicas, que formam o Sprint "
               "Backlog. O Quadro 13 traz o cronograma, com o objetivo e o Sprint Backlog resumido de cada "
               "ciclo."),
         ("quadro", "Cronograma das Sprints e Sprint Backlog resumido",
          ["Sprint", "Período", "Objetivo", "Sprint Backlog (tarefas principais)"],
-         [["1", "Semanas 1 e 2", "Fundação e autenticação", "Estrutura em camadas; repositório genérico; modelo de dados; login com JWT e BCrypt; cadastro de tutor"],
-          ["2", "Semanas 3 e 4", "Pets e agenda", "Cadastro de pets; cálculo de horários livres; regras RN01, RN03 e RN10; assistente de agendamento web"],
-          ["3", "Semanas 5 e 6", "Fluxo clínico", "Máquina de status (RN04); cancelamento (RN02); prontuário; painéis do atendente e do veterinário"],
-          ["4", "Semanas 7 e 8", "Estoque e vendas", "Produtos e estoque; venda com carrinho; triggers de baixa e de alerta (RN15)"],
-          ["5", "Semanas 9 e 10", "Gestão", "Indicadores; relatório de faturamento; gestão da equipe; procedures e views"],
-          ["6", "Semanas 11 e 12", "IA, mobile e DevOps", "Microsserviço de IA; aplicativo; VLibras; containers; pipeline; testes automatizados"],
-          ["7", "Semanas 13 e 14", "Operação do balcão", "Chegada e pagamento; caixa de e-mail; entrada de mercadoria; fornecedores; ordem de serviço; gráficos do mês; padronização visual; catálogo de demonstração"]],
+         [["1", "03/08 a 14/08", "Fundação e autenticação", "Estrutura em camadas; repositório genérico; modelo de dados; login com JWT e BCrypt; cadastro de tutor"],
+          ["2", "17/08 a 28/08", "Pets e agenda", "Cadastro de pets; cálculo de horários livres; regras RN01, RN03 e RN10; assistente de agendamento web"],
+          ["3", "31/08 a 11/09", "Fluxo clínico", "Máquina de status (RN04); cancelamento (RN02); prontuário; painéis do atendente e do veterinário"],
+          ["4", "14/09 a 25/09", "Estoque e vendas", "Produtos e estoque; venda com carrinho; triggers de baixa e de alerta (RN15)"],
+          ["5", "28/09 a 09/10", "Gestão", "Indicadores; relatório de faturamento; gestão da equipe; procedures e views"],
+          ["6", "12/10 a 23/10", "IA, mobile e DevOps", "Microsserviço de IA; aplicativo; VLibras; containers; pipeline; testes automatizados"],
+          ["7", "26/10 a 06/11", "Operação do balcão", "Chegada e pagamento; caixa de e-mail; entrada de mercadoria; fornecedores; ordem de serviço; gráficos do mês; padronização visual; catálogo de demonstração"]],
          [1.3, 2.5, 3.4, 8.8], 9),
         ("h2", "10.4 Quadro Kanban"),
         ("p", "O andamento das tarefas foi acompanhado em um quadro Kanban, que torna o fluxo de trabalho "
@@ -797,7 +794,12 @@ REFERENCIAS = [
 
 # =====================================================================================
 APENDICE_TELAS = [
-    ("p", "As figuras a seguir complementam a seção 5.5 e foram capturadas com a aplicação em execução."),
+    ("p", "As figuras a seguir complementam os capítulos 5 e 6 e foram capturadas com a aplicação em execução."),
+    ("fig", "web_atendente.png", "Agenda do balcão com um atendimento em processo", 12.5),
+    ("fig", "web_ordens.png", "Lista de ordens de serviço da semana", 12.5),
+    ("fig", "web_entrada.png", "Entrada de mercadoria com alertas de reposição e de validade", 12.5),
+    ("fig", ["mob_agendar_1.png", "mob_agendar_2.png", "mob_agendar_4.png", "mob_agendar_5.png"],
+         "Passos do assistente de agendamento no aplicativo", 3.5),
     ("fig", "web_login.png", "Tela de login e cadastro", 12.5),
     ("fig", "web_portal.png", "Portal do tutor", 12.5),
     ("fig", "web_agendamento.png", "Assistente de agendamento da aplicação web", 12.5),

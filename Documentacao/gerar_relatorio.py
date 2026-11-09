@@ -239,7 +239,8 @@ class Relatorio:
     def _fonte(self, texto=None):
         par = self.doc.add_paragraph()
         formatar(par, WD_ALIGN_PARAGRAPH.CENTER, entrelinhas=1.0, antes=4, depois=12)
-        escrever(par, texto or f"Fonte: elaborado pelo autor ({self.dados['ano']}).", 10)
+        autoria = "pelos autores" if len(self.dados["alunos"]) > 1 else "pelo autor"
+        escrever(par, texto or f"Fonte: elaborado {autoria} ({self.dados['ano']}).", 10)
 
     def figura(self, arquivos, titulo, largura_cm=15.0, fonte=None):
         """Uma figura com uma ou mais imagens lado a lado (largura_cm é a de cada imagem)."""
@@ -323,7 +324,7 @@ class Relatorio:
         escrever(formatar(self.doc.add_paragraph(), entrelinhas=1.0, esquerda_cm=8.0), natureza)
         formatar(self.doc.add_paragraph(), entrelinhas=1.0)
         escrever(formatar(self.doc.add_paragraph(), WD_ALIGN_PARAGRAPH.LEFT, entrelinhas=1.0, esquerda_cm=8.0),
-                 f"Orientador(a): {d['orientador']}")
+                 f"{d.get('orientador_rotulo', 'Orientador(a)')}: {d['orientador']}")
         self.linhas_em_branco(max(1, 8 - len(d["alunos"])))
         escrever(formatar(self.doc.add_paragraph(), WD_ALIGN_PARAGRAPH.CENTER), d["cidade"].upper())
         escrever(formatar(self.doc.add_paragraph(), WD_ALIGN_PARAGRAPH.CENTER), d["ano"])
@@ -362,8 +363,12 @@ class Relatorio:
             escrever(formatar(self.doc.add_paragraph(), WD_ALIGN_PARAGRAPH.LEFT, entrelinhas=1.0, depois=12), item)
 
     def apendice(self, titulo):
-        par = self.secao(1, titulo)
-        par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        # Título sem estilo de seção: pelo manual da UNIP, apêndices não entram no sumário
+        par = self.doc.add_paragraph()
+        formatar(par, WD_ALIGN_PARAGRAPH.CENTER, depois=12)
+        par.paragraph_format.page_break_before = True
+        manter_com_proximo(par)
+        escrever(par, titulo.upper(), negrito=True)
 
     # ---- interpretação dos blocos de conteúdo
     def renderizar(self, blocos):

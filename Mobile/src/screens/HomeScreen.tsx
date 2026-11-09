@@ -46,7 +46,7 @@ export function HomeScreen() {
     <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
       <StatusBar style="light" />
       <View style={styles.hero}>
-        <Text style={styles.saudacao}>Olá, {usuario?.nome?.split(" ")[0]} 👋</Text>
+        <Text style={styles.saudacao}>Olá, {usuario?.nome?.split(" ")[0]}</Text>
         <Text style={styles.heroSub}>
           Seu painel de cuidados com os pets está pronto.
         </Text>

@@ -30,7 +30,7 @@ export function PetCard({ pet }: Props) {
         <Text style={styles.detalhes}>
           {pet.raca ? `${pet.raca} · ` : ""}
           {pet.sexo === Sexo.Macho ? "Macho" : "Fêmea"}
-          {pet.pesoKg ? ` · ${pet.pesoKg} kg` : ""}
+          {pet.pesoKg ? ` · ${String(pet.pesoKg).replace(".", ",")} kg` : ""}
         </Text>
       </View>
     </View>

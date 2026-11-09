@@ -137,13 +137,13 @@ export function AddPetScreen() {
             style={[styles.chip, sexo === Sexo.Macho && styles.chipAtivo]}
             onPress={() => setSexo(Sexo.Macho)}
           >
-            <Text style={styles.chipTexto}>♂ Macho</Text>
+            <Text style={styles.chipTexto}>Macho</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.chip, sexo === Sexo.Femea && styles.chipAtivo]}
             onPress={() => setSexo(Sexo.Femea)}
           >
-            <Text style={styles.chipTexto}>♀ Fêmea</Text>
+            <Text style={styles.chipTexto}>Fêmea</Text>
           </TouchableOpacity>
         </View>
 
